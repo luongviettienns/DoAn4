@@ -14,8 +14,8 @@
 | **Phase 2: Sprint 1 - Nền tảng Core & Dữ liệu** | Scaffold Frontend (Vite+React) & Backend (Node+Express+Prisma), Auth/RBAC (F01), Danh mục Phim/Rạp (F09, F10) | [x] Hoàn thành |
 | **Phase 3: Sprint 2 - Quản lý Suất chiếu & Sơ đồ ghế** | Suất chiếu & Ghế (F11, F02), Bảng giá (F12), Giao diện chọn ghế | [x] Hoàn thành |
 | **Phase 4: Sprint 3 - Đặt vé & Thanh toán VNPay** | Giữ ghế transaction (F03), Tích hợp VNPay sandbox (F04), Xuất vé QR (F05) | [x] Hoàn thành |
-| **Phase 5: Sprint 4 - Nghiệm thu Core MVP (Must)** | Soát vé (F08), Lịch sử đặt vé (F06), Worker hết hạn đơn (F19), Smoke test MVP | [/] Đang thực hiện |
-| **Phase 6: Sprint 5 - Tính năng mở rộng (Should)** | Combo/Voucher (F13), Bán tại quầy (F07), Báo cáo doanh thu (F14), Hủy/Hoàn vé | [ ] Chưa bắt đầu |
+| **Phase 5: Sprint 4 - Nghiệm thu Core MVP (Must)** | Soát vé (F08), Lịch sử đặt vé (F06), Worker hết hạn đơn (F19), Smoke test MVP | [x] Hoàn thành |
+| **Phase 6: Sprint 5 - Tính năng mở rộng (Should)** | Combo/Voucher (F13), Bán tại quầy (F07), Báo cáo doanh thu (F14), Hủy/Hoàn vé | [/] Đang thực hiện |
 | **Phase 7: Sprint 6 - Nâng cao & Hoàn thiện đồ án (Could)** | Gợi ý phim ML (F17), Đánh giá phim (F18), Báo cáo nghiệm thu & Slide bảo vệ | [ ] Chưa bắt đầu |
 
 ---
@@ -78,6 +78,28 @@
 - [x] Kiểm thử trực quan end-to-end bằng browser subagent (`ticket_flow_pass`):
   - Đăng nhập `customer@gmail.com`, chọn 2 ghế VIP C1 & C2 (230.000đ), xác nhận checkout, thực hiện thanh toán và hiển thị màn hình vé CineX Pass có mã QR đầy đủ.
   - Lưu ảnh bằng chứng: `cinex_ticket_pass_1791016816379.png`.
+
+### [2026-10-03] Phase 5: Hoàn thành Sprint 4 (Nghiệm thu Core MVP - F06, F08, F19)
+- [x] Triển khai Backend Module Soát vé Check-in (`checkin.schema.ts`, `checkin.service.ts`, `checkin.controller.ts`, `checkin.routes.ts`):
+  - Tra cứu và xác thực vé xem phim qua mã vé QR hoặc ID (F08).
+  - Áp dụng chặt chẽ quy tắc BR-11: Mỗi vé chỉ được check-in duy nhất một lần. Chặn vé đã qua sử dụng với mã lỗi 409 `TICKET_ALREADY_USED` kèm thời gian và nhân viên soát vé trước đó.
+  - Kiểm tra thẩm quyền cụm rạp: Nhân viên rạp nào chỉ được soát vé cho suất chiếu tại rạp đó (`checkStaffCinemaAccess`).
+  - Cung cấp API thống kê soát vé thời gian thực (`GET /api/v1/checkin/stats`) và lịch sử quét gần nhất (`GET /api/v1/checkin/history`).
+- [x] Triển khai Backend Lịch sử đặt vé khách hàng (F06):
+  - Endpoint `GET /api/v1/orders/my/history` và `GET /api/v1/me/orders` tra cứu toàn bộ đơn đặt vé của người dùng kèm chi tiết vé, ghế, rạp, phòng, suất chiếu, phân trang và trạng thái thanh toán.
+- [x] Triển khai Backend Background Sweeper Worker (F19):
+  - `worker.service.ts`: Quét và giải phóng các đơn hàng quá hạn giữ chỗ (`status: PENDING_PAYMENT` và `expiresAt < NOW()`), chuyển đơn sang `EXPIRED`, hoàn trả ghế về `AVAILABLE`, xóa guard `pending_order_guards`.
+  - Endpoint quản trị `POST /api/v1/ops/sweep-expired` cho phép kích hoạt dọn dẹp chủ động hoặc tích hợp cronjob.
+- [x] Bộ kiểm thử tự động API Soát vé, Lịch sử và Worker (`backend/tests/checkin-history-worker.test.ts`):
+  - 9 ca kiểm thử: soát vé hợp lệ, chặn soát lần hai (BR-11), chặn mã vé không tồn tại, chặn nhân viên sai cụm rạp, tra cứu lịch sử đơn hàng của khách, worker quét và giải phóng đơn quá hạn.
+  - Toàn bộ test suite chạy thành công: **36/36 tests PASSED (100%)** trên 5 test files.
+- [x] Phát triển Frontend MyTicketsDrawer & StaffCheckinModal:
+  - `MyTicketsDrawer.tsx`: Drawer xem danh sách vé đã đặt, phân loại Đã thanh toán / Chờ thanh toán / Đã hủy, thẻ vé chi tiết hiển thị mã vé, phim, phòng, ghế và mã QR điện tử.
+  - `StaffCheckinModal.tsx`: Giao diện trạm soát vé điện tử dành cho nhân viên/quản lý (`STAFF`, `MANAGER`, `ADMIN`), hiển thị thẻ thống kê hôm nay (Tổng vé, Đã vào phòng, Chưa soát), ô nhập/quét mã vé nhanh, và bảng lịch sử quét vé thời gian thực.
+- [x] Kiểm thử trực tiếp giao diện (Browser Subagent verification):
+  - Đăng nhập nhân viên `admin@cinex.vn`, kích hoạt nút "Soát vé" trên Header bar, mở modal trạm soát vé, kiểm tra hiển thị số liệu 22 vé / 4 đã vào phòng / 18 chưa soát.
+  - Lưu ảnh bằng chứng: `staff_checkin_modal_verified_1791019079936.png` và `my_tickets_drawer_1791018631806.png`.
+
 
 
 

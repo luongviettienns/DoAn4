@@ -8,6 +8,10 @@ import cinemaRoutes from './modules/cinemas/cinema.routes';
 import showtimeRoutes from './modules/showtimes/showtime.routes';
 import orderRoutes from './modules/orders/order.routes';
 import paymentRoutes from './modules/payments/payment.routes';
+import checkinRoutes from './modules/checkin/checkin.routes';
+import opsRoutes from './modules/worker/ops.routes';
+import { orderController } from './modules/orders/order.controller';
+import { authenticate } from './middleware/auth.middleware';
 import { errorHandler } from './middleware/error.middleware';
 
 export const createApp = (): Application => {
@@ -37,7 +41,7 @@ export const createApp = (): Application => {
       data: {
         message: 'Cinema Booking API v1',
         version: '1.0.0-design',
-        modules: ['auth', 'movies', 'cinemas', 'showtimes', 'orders', 'payments'],
+        modules: ['auth', 'movies', 'cinemas', 'showtimes', 'orders', 'payments', 'checkin'],
       },
       serverTime: new Date().toISOString(),
     });
@@ -50,6 +54,12 @@ export const createApp = (): Application => {
   app.use('/api/v1/showtimes', showtimeRoutes);
   app.use('/api/v1/orders', orderRoutes);
   app.use('/api/v1/payment', paymentRoutes);
+  app.use('/api/v1/checkin', checkinRoutes);
+  app.use('/api/v1/ops', opsRoutes);
+
+  // OpenAPI contract: /me/orders endpoints
+  app.get('/api/v1/me/orders', authenticate, (req: Request, res: Response, next) => orderController.getMyOrders(req, res, next));
+  app.get('/api/v1/me/orders/:id', authenticate, (req: Request, res: Response, next) => orderController.getById(req, res, next));
 
   // Centralized Error Handling Middleware
   app.use(errorHandler);

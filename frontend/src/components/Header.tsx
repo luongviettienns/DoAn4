@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Film, MapPin, Search, User, Menu, X, LogOut, Award } from 'lucide-react';
+import { Film, MapPin, Search, User, Menu, X, LogOut, Award, Ticket, QrCode } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenMyTickets?: () => void;
+  onOpenStaffCheckin?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffCheckin }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, openAuthModal, logout } = useAuth();
@@ -98,6 +103,30 @@ export const Header: React.FC = () => {
           {/* User Account / Login State */}
           {user ? (
             <div className="flex items-center gap-3">
+              {/* My Tickets Button (F06) */}
+              <button
+                type="button"
+                onClick={() => onOpenMyTickets?.()}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-[#FFB23E] bg-[#FFB23E]/10 hover:bg-[#FFB23E]/20 border border-[#FFB23E]/30 transition-all min-h-[44px]"
+                title="Xem danh sách vé đã đặt"
+              >
+                <Ticket className="w-4 h-4" />
+                <span>Vé của tôi</span>
+              </button>
+
+              {/* Staff Check-in Trigger (F08) */}
+              {(user.role === 'STAFF' || user.role === 'MANAGER' || user.role === 'ADMIN') && (
+                <button
+                  type="button"
+                  onClick={() => onOpenStaffCheckin?.()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all min-h-[44px]"
+                  title="Cổng soát vé điện tử"
+                >
+                  <QrCode className="w-4 h-4" />
+                  <span>Soát vé</span>
+                </button>
+              )}
+
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151318] border border-[#2A2631] text-xs">
                 <div className="w-7 h-7 rounded-full bg-[#FFB23E]/20 text-[#FFB23E] font-bold flex items-center justify-center text-xs">
                   {user.fullName[0]}

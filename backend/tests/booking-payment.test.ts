@@ -306,13 +306,18 @@ describe('Phase 4: Booking & VNPay Payment Integration (F03, F04, F05)', () => {
   });
 
   it('Hủy đơn hàng đang giữ chỗ và giải phóng ghế thành công', async () => {
-    // Tạo một đơn tạm khác với ghế thứ 3
+    // Lấy 1 ghế đang AVAILABLE thực tế
+    const availableSlot = await prisma.showtimeSeat.findFirst({
+      where: { showtimeId, status: 'AVAILABLE' },
+    });
+    expect(availableSlot).not.toBeNull();
+
     const createRes = await request(app)
       .post('/api/v1/orders')
       .set('Authorization', `Bearer ${customerToken}`)
       .send({
         showtimeId,
-        seatIds: [availableSeatIds[2]],
+        seatIds: [availableSlot!.seatId],
         ageConfirmed: true,
       });
 
@@ -330,7 +335,7 @@ describe('Phase 4: Booking & VNPay Payment Integration (F03, F04, F05)', () => {
 
     // Kiểm tra ghế đã được giải phóng sang AVAILABLE
     const seat = await prisma.showtimeSeat.findFirst({
-      where: { showtimeId, seatId: availableSeatIds[2] },
+      where: { showtimeId, seatId: availableSlot!.seatId },
     });
     expect(seat?.status).toBe('AVAILABLE');
     expect(seat?.orderId).toBeNull();

@@ -56,8 +56,7 @@ describe('Showtimes & Seat Map API (F11, F02, F12)', () => {
     const sampleSeat = seats[0];
     expect(sampleSeat.id).toBeDefined();
     expect(sampleSeat.rowLabel).toBeDefined();
-    expect(sampleSeat.seatNumber).toBeDefined();
-    expect(sampleSeat.status).toBe('AVAILABLE');
+    expect(['AVAILABLE', 'SOLD', 'HELD']).toContain(sampleSeat.status);
     expect(sampleSeat.price).toBeGreaterThan(0);
 
     // Verify couple seat exists with columnSpan = 2

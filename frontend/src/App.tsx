@@ -10,12 +10,16 @@ import { AuthModal } from './components/AuthModal';
 import { SeatMapModal, type SeatItem } from './components/SeatMapModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { TicketModal } from './components/TicketModal';
+import { MyTicketsDrawer } from './components/MyTicketsDrawer';
+import { StaffCheckinModal } from './components/StaffCheckinModal';
 import { useAuth } from './context/AuthContext';
 
 const AppContent: React.FC = () => {
   const { openAuthModal } = useAuth();
   const [defaultShowtimeId, setDefaultShowtimeId] = useState<string | null>(null);
   const [activeSeatMapShowtimeId, setActiveSeatMapShowtimeId] = useState<string | null>(null);
+  const [myTicketsOpen, setMyTicketsOpen] = useState(false);
+  const [staffCheckinOpen, setStaffCheckinOpen] = useState(false);
 
   // Checkout and Ticket state
   const [checkoutData, setCheckoutData] = useState<{
@@ -73,7 +77,10 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0B0A0C] text-[#F3EEE6] flex flex-col font-['Be_Vietnam_Pro'] selection:bg-[#FFB23E] selection:text-[#0B0A0C]">
       {/* Header */}
-      <Header />
+      <Header
+        onOpenMyTickets={() => setMyTicketsOpen(true)}
+        onOpenStaffCheckin={() => setStaffCheckinOpen(true)}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
@@ -113,6 +120,19 @@ const AppContent: React.FC = () => {
         isOpen={ticketData.isOpen}
         onClose={() => setTicketData({ isOpen: false, order: null })}
         order={ticketData.order}
+      />
+
+      {/* User Booking History Drawer (F06) */}
+      <MyTicketsDrawer
+        isOpen={myTicketsOpen}
+        onClose={() => setMyTicketsOpen(false)}
+        onSelectOrder={(order) => setTicketData({ isOpen: true, order })}
+      />
+
+      {/* Staff Check-in Station (F08) */}
+      <StaffCheckinModal
+        isOpen={staffCheckinOpen}
+        onClose={() => setStaffCheckinOpen(false)}
       />
     </div>
   );

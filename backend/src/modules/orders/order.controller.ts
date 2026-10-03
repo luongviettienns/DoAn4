@@ -79,6 +79,21 @@ export class OrderController {
       next(error);
     }
   }
+
+  /**
+   * GET /api/v1/me/orders - Lịch sử đơn hàng của khách hàng (F06)
+   */
+  async getMyOrders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const limit = req.query.limit ? Number(req.query.limit) : 10;
+      const result = await orderService.getUserOrders(userId, page, limit);
+      return sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const orderController = new OrderController();

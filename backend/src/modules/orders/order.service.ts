@@ -467,6 +467,85 @@ export class OrderService {
 
     return { success: true, message: 'Đã hủy đơn hàng và giải phóng ghế thành công' };
   }
+
+  /**
+   * Lịch sử đơn hàng và vé của người dùng (F06)
+   */
+  async getUserOrders(userId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const [total, orders] = await Promise.all([
+      prisma.order.count({ where: { userId } }),
+      prisma.order.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          items: {
+            include: {
+              ticket: true,
+            },
+          },
+          showtime: {
+            include: {
+              movie: true,
+              room: {
+                include: {
+                  cinema: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      items: orders.map((o) => ({
+        id: o.id,
+        code: o.code,
+        showtimeId: o.showtimeId,
+        status: o.status === 'PENDING_PAYMENT' && o.expiresAt <= new Date() ? 'EXPIRED' : o.status,
+        total: o.total,
+        ticketSubtotal: o.ticketSubtotal,
+        currency: 'VND',
+        createdAt: o.createdAt.toISOString(),
+        paidAt: o.paidAt ? o.paidAt.toISOString() : null,
+        snapshot: {
+          movieTitle: o.movieTitleSnapshot,
+          posterUrl: o.showtime.movie.posterUrl,
+          ageRating: o.ageRatingSnapshot,
+          cinemaName: o.cinemaNameSnapshot,
+          cinemaAddress: o.cinemaAddressSnapshot,
+          roomName: o.roomNameSnapshot,
+          format: o.formatSnapshot,
+          language: o.languageSnapshot,
+          startTime: o.showtimeStartSnapshot.toISOString(),
+          endTime: o.showtime.endTime.toISOString(),
+        },
+        items: o.items.map((i) => ({
+          id: i.id,
+          seatId: i.seatId,
+          seatLabel: `${i.rowLabel}${i.seatNumber}`,
+          seatType: i.seatType,
+          price: i.price,
+          ticket: i.ticket
+            ? {
+                ticketCode: i.ticket.ticketCode,
+                status: i.ticket.status,
+                checkedInAt: i.ticket.checkedInAt ? i.ticket.checkedInAt.toISOString() : null,
+              }
+            : null,
+        })),
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }
 
 export const orderService = new OrderService();
