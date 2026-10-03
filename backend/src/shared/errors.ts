@@ -48,3 +48,9 @@ export class ConflictError extends AppError {
     super(409, code, message, details);
   }
 }
+
+export class GoneError extends AppError {
+  constructor(code = 'ORDER_EXPIRED', message = 'Đơn hàng hoặc thời gian giữ ghế đã hết hạn') {
+    super(410, code, message);
+  }
+}

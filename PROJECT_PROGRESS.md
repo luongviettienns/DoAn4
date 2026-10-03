@@ -13,8 +13,8 @@
 | **Phase 1: Khởi tạo môi trường & Kho mã nguồn** | Git init, cấu hình .gitignore, liên kết remote GitHub, tài liệu tiến độ | [x] Hoàn thành |
 | **Phase 2: Sprint 1 - Nền tảng Core & Dữ liệu** | Scaffold Frontend (Vite+React) & Backend (Node+Express+Prisma), Auth/RBAC (F01), Danh mục Phim/Rạp (F09, F10) | [x] Hoàn thành |
 | **Phase 3: Sprint 2 - Quản lý Suất chiếu & Sơ đồ ghế** | Suất chiếu & Ghế (F11, F02), Bảng giá (F12), Giao diện chọn ghế | [x] Hoàn thành |
-| **Phase 4: Sprint 3 - Đặt vé & Thanh toán VNPay** | Giữ ghế transaction (F03), Tích hợp VNPay sandbox (F04), Xuất vé QR (F05) | [/] Đang thực hiện |
-| **Phase 5: Sprint 4 - Nghiệm thu Core MVP (Must)** | Soát vé (F08), Lịch sử đặt vé (F06), Worker hết hạn đơn (F19), Smoke test MVP | [ ] Chưa bắt đầu |
+| **Phase 4: Sprint 3 - Đặt vé & Thanh toán VNPay** | Giữ ghế transaction (F03), Tích hợp VNPay sandbox (F04), Xuất vé QR (F05) | [x] Hoàn thành |
+| **Phase 5: Sprint 4 - Nghiệm thu Core MVP (Must)** | Soát vé (F08), Lịch sử đặt vé (F06), Worker hết hạn đơn (F19), Smoke test MVP | [/] Đang thực hiện |
 | **Phase 6: Sprint 5 - Tính năng mở rộng (Should)** | Combo/Voucher (F13), Bán tại quầy (F07), Báo cáo doanh thu (F14), Hủy/Hoàn vé | [ ] Chưa bắt đầu |
 | **Phase 7: Sprint 6 - Nâng cao & Hoàn thiện đồ án (Could)** | Gợi ý phim ML (F17), Đánh giá phim (F18), Báo cáo nghiệm thu & Slide bảo vệ | [ ] Chưa bắt đầu |
 
@@ -55,6 +55,29 @@
   - Dock thanh thông tin phía dưới hiển thị ghế đã chọn, tính tổng tiền thời gian thực và nút chuyển bước "Tiếp tục đặt vé".
 - [x] Kiểm thử trực tiếp giao diện (Browser Subagent verification):
   - Mở sơ đồ ghế từ Hero action, chọn 2 ghế VIP C3 & C4, kiểm tra cập nhật dock tổng tiền 230.000đ, chụp ảnh bằng chứng `seat_map_selected_1791014478809.png`, đóng modal mượt mà.
+
+### [2026-10-03] Phase 4: Hoàn thành Sprint 3 (Đặt vé, Giữ ghế F03, Thanh toán VNPay F04, Xuất vé QR F05)
+- [x] Triển khai Backend Module Orders (`order.schema.ts`, `order.service.ts`, `order.controller.ts`, `order.routes.ts`):
+  - Transaction giữ ghế 10 phút (BR-01): `status: HELD`, `holdExpiresAt: now + 10m`.
+  - Ràng buộc BR-03 bảo vệ đơn đang giữ chỗ thông qua bảng `pending_order_guards` (chặn tạo nhiều đơn đồng thời cho cùng 1 suất chiếu, trả về 409 Conflict).
+  - Ràng buộc số lượng ghế: tối thiểu 1 ghế, tối đa 8 ghế (BR-03).
+  - Snapshot toàn bộ thông tin phim, phòng, rạp, giá vé theo CSDL chuẩn vào `orders` và `order_items`.
+  - Hủy đơn hàng và tự động giải phóng ghế sang `AVAILABLE`.
+- [x] Triển khai Backend Module Payments (`vnpay.adapter.ts`, `payment.service.ts`, `payment.controller.ts`, `payment.routes.ts`):
+  - Bộ chuyển đổi VNPay Sandbox tính chữ ký bảo mật HMAC-SHA512 theo chuẩn VNPAY 2.1.0.
+  - Webhook IPN (`GET /api/v1/payment/vnpay/ipn`) và Return redirect (`GET /api/v1/payment/vnpay/return`).
+  - Kiểm tra tính toàn vẹn chữ ký, idempotency guard trả về `RspCode: 02` nếu đơn đã được xác nhận.
+  - Giao dịch thanh toán thành công (F04 + F05): chuyển `orders.status -> PAID`, `showtime_seats.status -> SOLD`, tích lũy điểm thưởng thành viên, phát hành vé `Ticket` với mã định danh duy nhất `TKXXXXXXXXXX` (`status: VALID`).
+  - Cung cấp endpoint mô phỏng thanh toán sandbox tức thì cho môi trường kiểm thử tự động.
+- [x] Bộ kiểm thử tự động API Đặt vé & Thanh toán (`backend/tests/booking-payment.test.ts`):
+  - 9 ca kiểm thử chuyên sâu: giữ ghế, chặn trùng lặp BR-03, giới hạn 8 ghế, sinh paymentUrl VNPay, từ chối hash giả mạo (97), xác nhận thanh toán & xuất vé, tính lũy thừa idempotent, hủy đơn giải phóng ghế.
+  - Toàn bộ test suite chạy thành công: **27/27 tests PASSED (100%)** trên 4 test file.
+- [x] Phát triển Frontend CheckoutModal & TicketModal:
+  - `CheckoutModal.tsx`: Đồng hồ đếm ngược 10 phút giữ ghế, thẻ tóm tắt phim/rạp, danh sách ghế đã chọn, xác nhận độ tuổi BR, lựa chọn cổng VNPay / Sandbox tức thì.
+  - `TicketModal.tsx`: Thiết kế CineX Pass chuẩn phòng chiếu IMAX, hiển thị mã đơn hàng, vị trí ghế VIP, mã QR điện tử độ nét cao qua `qrcode.react`, trạng thái "HỢP LỆ — SẴN SÀNG SOÁT VÉ", tính năng in/lưu vé.
+- [x] Kiểm thử trực quan end-to-end bằng browser subagent (`ticket_flow_pass`):
+  - Đăng nhập `customer@gmail.com`, chọn 2 ghế VIP C1 & C2 (230.000đ), xác nhận checkout, thực hiện thanh toán và hiển thị màn hình vé CineX Pass có mã QR đầy đủ.
+  - Lưu ảnh bằng chứng: `cinex_ticket_pass_1791016816379.png`.
 
 
 
