@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './modules/auth/auth.routes';
 import movieRoutes from './modules/movies/movie.routes';
 import cinemaRoutes from './modules/cinemas/cinema.routes';
+import showtimeRoutes from './modules/showtimes/showtime.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 export const createApp = (): Application => {
@@ -34,7 +35,7 @@ export const createApp = (): Application => {
       data: {
         message: 'Cinema Booking API v1',
         version: '1.0.0-design',
-        modules: ['auth', 'movies', 'cinemas'],
+        modules: ['auth', 'movies', 'cinemas', 'showtimes'],
       },
       serverTime: new Date().toISOString(),
     });
@@ -44,6 +45,7 @@ export const createApp = (): Application => {
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/movies', movieRoutes);
   app.use('/api/v1/cinemas', cinemaRoutes);
+  app.use('/api/v1/showtimes', showtimeRoutes);
 
   // Centralized Error Handling Middleware
   app.use(errorHandler);

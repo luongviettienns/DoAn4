@@ -4,7 +4,11 @@ import { FEATURED_MOVIES, type MovieSlide } from '../data/mockMovies';
 
 const SLIDE_DURATION_MS = 7000;
 
-export const Hero: React.FC = () => {
+interface HeroProps {
+  onOpenSeatMap?: (showtimeId?: string) => void;
+}
+
+export const Hero: React.FC<HeroProps> = ({ onOpenSeatMap }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -126,14 +130,15 @@ export const Hero: React.FC = () => {
             {/* Cụm Action: Nút tem vé + Nút Trailer */}
             <div className="pt-3 flex items-center flex-wrap gap-4">
               {/* Nút tem vé răng cưa có hiệu ứng glow hổ phách */}
-              <a
-                href="#booking"
+              <button
+                type="button"
+                onClick={() => onOpenSeatMap?.()}
                 className="group relative inline-flex items-center gap-3 px-6 py-3.5 bg-[#FFB23E] hover:bg-[#FFA21A] text-[#0B0A0C] font-['Barlow_Condensed'] text-lg font-bold tracking-wider uppercase transition-all duration-300 shadow-xl shadow-[#FFB23E]/25 hover:shadow-[#FFB23E]/40 hover:-translate-y-0.5 active:translate-y-0 min-h-[48px] rounded-sm"
               >
                 <Ticket className="w-5 h-5 text-[#0B0A0C] group-hover:rotate-12 transition-transform duration-300" />
                 <span>ĐẶT VÉ NGAY</span>
                 <ChevronRight className="w-4 h-4 text-[#0B0A0C] group-hover:translate-x-1 transition-transform" />
-              </a>
+              </button>
 
               {/* Nút xem trailer phụ */}
               <button
@@ -225,7 +230,7 @@ export const Hero: React.FC = () => {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              alert(`Chuyển đến chọn suất chiếu cho phim: ${currentMovie.title}`);
+              onOpenSeatMap?.();
             }}
             className="grid grid-cols-2 md:grid-cols-5 gap-3 items-center"
           >
