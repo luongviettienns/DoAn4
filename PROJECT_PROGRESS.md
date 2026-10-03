@@ -36,3 +36,13 @@
 - [x] Đồng bộ Prisma schema tham chiếu (`backend/prisma/schema.prisma`), xác thực `prisma validate` hợp lệ và sinh Prisma Client v6.19.0.
 - [x] Cấu hình mẫu môi trường `.env.example` cho cả Frontend và Backend theo đúng tài liệu quy ước.
 
+### [2026-10-03] Phase 2: Thiết lập Frontend Design System & Giao diện Trang chủ (Hero + Sections)
+- [x] Soạn thảo và lưu trữ [frontend/design-system/MASTER.md](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/design-system/MASTER.md) kết hợp triết lý Taste Skill, UI UX Pro Max và Frontend Skill.
+- [x] Cài đặt Tailwind CSS v4 (`@tailwindcss/vite`), cấu hình design tokens tại `src/index.css` (màu than ấm `#0B0A0C`, hổ phách `#FFB23E`, font `Be Vietnam Pro` + `Barlow Condensed`).
+- [x] Xây dựng component `Header` trong suốt, phủ mờ khi cuộn, nhãn rạp và nút đăng nhập chuẩn kích thước tương tác 44×44px.
+- [x] Xây dựng component `Hero` phong cách điện ảnh: Backdrop full-bleed, vignette, typography phim in hoa sắc nét, nút tem vé răng cưa `[ ĐẶT VÉ NGAY ]`, poster rail 5 phim kèm thanh tiến trình 7s.
+- [x] Xây dựng thanh `Booking Dock` dính chân Hero: chọn Rạp, Phim (tự động đồng bộ theo slide), Ngày, Suất và nút Mua Vé.
+- [x] Xây dựng các phân đoạn trang chủ theo Content Plan: `NowShowingSection`, `CinemaExperienceSection` (IMAX, ScreenX, Gold Class), `PromoSection` và `Footer`.
+- [x] Xác minh trực quan qua browser automation (đạt chuẩn responsive, contrast 4.5:1, không lỗi console).
+
+
