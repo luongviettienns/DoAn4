@@ -1,0 +1,895 @@
+// Thiết kế tham chiếu cho Prisma 6.19.0 + MySQL 8.0.16+ (InnoDB).
+// Chưa phải schema đã triển khai. CHECK bổ sung: constraints.sql.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+  MANAGER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  PENDING_VERIFY
+}
+
+enum MovieStatus {
+  COMING_SOON
+  NOW_SHOWING
+  ENDED
+}
+
+enum AgeRating {
+  P
+  K
+  T13
+  T16
+  T18
+  C
+}
+
+enum CinemaStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RoomStatus {
+  ACTIVE
+  MAINTENANCE
+}
+
+enum RoomFormat {
+  TWO_D   @map("2D")
+  THREE_D @map("3D")
+  IMAX
+}
+
+enum SeatType {
+  STANDARD
+  VIP
+  COUPLE
+  BLOCKED
+}
+
+enum ShowtimeLanguage {
+  SUBTITLED
+  DUBBED
+}
+
+enum ShowtimeStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum ShowtimeSeatStatus {
+  AVAILABLE
+  HELD
+  SOLD
+  BLOCKED
+}
+
+enum DayType {
+  WEEKDAY
+  WEEKEND
+  HOLIDAY
+}
+
+enum TimeSlot {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+enum OrderSource {
+  ONLINE
+  COUNTER
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  EXPIRED
+  CANCELLED
+  FAILED
+  PAID_UNFULFILLED
+}
+
+enum RefundStatus {
+  NONE
+  PENDING
+  REFUNDED
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentProvider {
+  VNPAY
+  MOMO
+  COUNTER
+  INTERNAL
+}
+
+enum PaymentMethod {
+  VNPAY
+  MOMO
+  CASH
+  BANK_TRANSFER
+  CARD
+  FREE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+enum PaymentLogChannel {
+  IPN
+  RETURN
+  COUNTER
+  RECONCILIATION
+}
+
+enum VoucherType {
+  PERCENT
+  FIXED
+}
+
+enum VoucherScope {
+  TICKETS
+  COMBOS
+  ORDER
+}
+
+enum VoucherStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum VoucherRedemptionStatus {
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+enum LoyaltyType {
+  EARN
+  REVERT
+}
+
+enum RefundReason {
+  ORDER_CANCELLED
+  SHOWTIME_CANCELLED
+  PAID_UNFULFILLED
+  DUPLICATE_PAYMENT
+}
+
+enum RefundRequestStatus {
+  PENDING
+  REFUNDED
+}
+
+enum RefundMethod {
+  BANK_TRANSFER
+  CASH
+  PROVIDER_MANUAL
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  SENT
+  DEAD
+}
+
+model User {
+  id                  String     @id @default(uuid()) @db.Char(36)
+  email               String     @unique(map: "uq_users_email") @db.VarChar(254)
+  phone               String     @unique(map: "uq_users_phone") @db.VarChar(10)
+  passwordHash        String?    @map("password_hash") @db.VarChar(255)
+  fullName            String     @map("full_name") @db.VarChar(100)
+  birthDate           DateTime?  @map("birth_date") @db.Date
+  avatarUrl           String?    @map("avatar_url") @db.VarChar(2048)
+  role                Role       @default(CUSTOMER)
+  status              UserStatus @default(ACTIVE)
+  points              Int        @default(0) @db.UnsignedInt
+  emailVerifiedAt     DateTime?  @map("email_verified_at") @db.DateTime(3)
+  failedLoginCount    Int        @default(0) @map("failed_login_count") @db.UnsignedInt
+  loginWindowStartsAt DateTime?  @map("login_window_starts_at") @db.DateTime(3)
+  lockedUntil         DateTime?  @map("locked_until") @db.DateTime(3)
+  createdAt           DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt           DateTime   @updatedAt @map("updated_at") @db.DateTime(3)
+
+  cinemaAssignments      UserCinema[]
+  refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  orders                 Order[]              @relation("OrderCustomer")
+  createdOrders          Order[]              @relation("OrderCreator")
+  pendingGuards          PendingOrderGuard[]
+  checkedInTickets       Ticket[]             @relation("TicketChecker")
+  recordedPayments       Payment[]            @relation("PaymentRecorder")
+  voucherRedemptions     VoucherRedemption[]
+  loyaltyTransactions    LoyaltyTransaction[]
+  reviews                Review[]
+  auditLogs              AuditLog[]
+  idempotencyKeys        IdempotencyKey[]
+  requestedRefunds       RefundRequest[]      @relation("RefundRequester")
+  processedRefunds       RefundRequest[]      @relation("RefundProcessor")
+  updatedSettings        Setting[]
+
+  @@index([role, status], map: "idx_users_role_status")
+  @@map("users")
+}
+
+model UserCinema {
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @map("user_id") @db.Char(36)
+  cinemaId  String   @map("cinema_id") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cinema Cinema @relation(fields: [cinemaId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, cinemaId], map: "uq_user_cinemas")
+  @@index([cinemaId, userId], map: "idx_user_cinemas_cinema")
+  @@map("user_cinemas")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.Char(36)
+  userId     String    @map("user_id") @db.Char(36)
+  tokenHash  String    @unique(map: "uq_refresh_token_hash") @map("token_hash") @db.Char(64)
+  familyId   String    @map("family_id") @db.Char(36)
+  expiresAt  DateTime  @map("expires_at") @db.DateTime(3)
+  usedAt     DateTime? @map("used_at") @db.DateTime(3)
+  revokedAt  DateTime? @map("revoked_at") @db.DateTime(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt], map: "idx_refresh_user_revoked")
+  @@index([familyId], map: "idx_refresh_family")
+  @@index([expiresAt], map: "idx_refresh_expiry")
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @map("user_id") @db.Char(36)
+  tokenHash String    @unique(map: "uq_reset_token_hash") @map("token_hash") @db.Char(64)
+  purpose   String    @default("RESET_PASSWORD") @db.VarChar(32)
+  expiresAt DateTime  @map("expires_at") @db.DateTime(3)
+  usedAt    DateTime? @map("used_at") @db.DateTime(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_reset_user")
+  @@index([expiresAt], map: "idx_reset_expiry")
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @map("user_id") @db.Char(36)
+  tokenHash String    @unique(map: "uq_verify_token_hash") @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.DateTime(3)
+  usedAt    DateTime? @map("used_at") @db.DateTime(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_verify_user")
+  @@index([expiresAt], map: "idx_verify_expiry")
+  @@map("email_verification_tokens")
+}
+
+model Genre {
+  id        String       @id @default(uuid()) @db.Char(36)
+  name      String       @unique(map: "uq_genres_name") @db.VarChar(100)
+  slug      String       @unique(map: "uq_genres_slug") @db.VarChar(100)
+  createdAt DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  movies    MovieGenre[]
+  @@map("genres")
+}
+
+model Movie {
+  id          String      @id @default(uuid()) @db.Char(36)
+  title       String      @db.VarChar(255)
+  originalTitle String?   @map("original_title") @db.VarChar(255)
+  posterUrl   String      @map("poster_url") @db.VarChar(2048)
+  bannerUrl   String?     @map("banner_url") @db.VarChar(2048)
+  trailerUrl  String?     @map("trailer_url") @db.VarChar(2048)
+  description String      @db.Text
+  durationMin Int         @map("duration_min") @db.UnsignedInt
+  ageRating   AgeRating   @map("age_rating")
+  releaseDate DateTime    @map("release_date") @db.Date
+  endDate     DateTime?   @map("end_date") @db.Date
+  director    String?     @db.VarChar(255)
+  cast        Json?
+  language    String?     @db.VarChar(100)
+  country     String?     @db.VarChar(100)
+  status      MovieStatus @default(COMING_SOON)
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
+  genres      MovieGenre[]
+  showtimes   Showtime[]
+  reviews     Review[]
+
+  @@index([isActive, status, releaseDate], map: "idx_movies_visibility")
+  @@index([title], map: "idx_movies_title")
+  @@map("movies")
+}
+
+model MovieGenre {
+  id      String @id @default(uuid()) @db.Char(36)
+  movieId String @map("movie_id") @db.Char(36)
+  genreId String @map("genre_id") @db.Char(36)
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Restrict)
+  @@unique([movieId, genreId], map: "uq_movie_genres")
+  @@index([genreId, movieId], map: "idx_movie_genres_genre")
+  @@map("movie_genres")
+}
+
+model Cinema {
+  id          String       @id @default(uuid()) @db.Char(36)
+  name        String       @db.VarChar(150)
+  address     String       @db.VarChar(500)
+  city        String       @db.VarChar(100)
+  phone       String       @db.VarChar(20)
+  openTime    DateTime     @map("open_time") @db.Time(0)
+  closeTime   DateTime     @map("close_time") @db.Time(0)
+  status      CinemaStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.DateTime(3)
+  assignments UserCinema[]
+  rooms       Room[]
+  priceRules  PriceRule[]
+  surcharges  SeatSurcharge[]
+  comboAssignments ComboCinema[]
+  vouchers    Voucher[]
+  @@index([city, status], map: "idx_cinemas_city_status")
+  @@map("cinemas")
+}
+
+model Room {
+  id          String     @id @default(uuid()) @db.Char(36)
+  cinemaId    String     @map("cinema_id") @db.Char(36)
+  name        String     @db.VarChar(100)
+  format      RoomFormat
+  rowCount    Int        @map("row_count") @db.UnsignedInt
+  columnCount Int        @map("column_count") @db.UnsignedInt
+  status      RoomStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.DateTime(3)
+  cinema      Cinema     @relation(fields: [cinemaId], references: [id], onDelete: Restrict)
+  seats       Seat[]
+  showtimes   Showtime[]
+  @@unique([cinemaId, name], map: "uq_rooms_cinema_name")
+  @@index([cinemaId, status], map: "idx_rooms_cinema_status")
+  @@map("rooms")
+}
+
+model Seat {
+  id         String   @id @default(uuid()) @db.Char(36)
+  roomId     String   @map("room_id") @db.Char(36)
+  rowLabel   String   @map("row_label") @db.VarChar(5)
+  seatNumber Int      @map("seat_number") @db.UnsignedInt
+  type       SeatType @default(STANDARD)
+  x          Int      @db.UnsignedInt
+  y          Int      @db.UnsignedInt
+  columnSpan Int      @default(1) @map("column_span") @db.UnsignedInt
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  slots      ShowtimeSeat[]
+  @@unique([roomId, rowLabel, seatNumber], map: "uq_seats_label")
+  @@unique([roomId, x, y], map: "uq_seats_coordinate")
+  @@unique([id, roomId], map: "uq_seats_id_room")
+  @@map("seats")
+}
+
+model Showtime {
+  id                String           @id @default(uuid()) @db.Char(36)
+  movieId           String           @map("movie_id") @db.Char(36)
+  roomId            String           @map("room_id") @db.Char(36)
+  startTime         DateTime         @map("start_time") @db.DateTime(3)
+  endTime           DateTime         @map("end_time") @db.DateTime(3)
+  cleaningMinutes   Int              @default(15) @map("cleaning_minutes") @db.UnsignedInt
+  adMinutes         Int              @default(15) @map("ad_minutes") @db.UnsignedInt
+  format            RoomFormat
+  language          ShowtimeLanguage
+  status            ShowtimeStatus   @default(OPEN)
+  cancellationReason String?         @map("cancellation_reason") @db.VarChar(1000)
+  cancelledAt       DateTime?        @map("cancelled_at") @db.DateTime(3)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+  movie             Movie            @relation(fields: [movieId], references: [id], onDelete: Restrict)
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  slots             ShowtimeSeat[]
+  orders            Order[]
+  pendingGuards      PendingOrderGuard[]
+  @@unique([id, roomId], map: "uq_showtimes_id_room")
+  @@index([roomId, status, startTime, endTime], map: "idx_showtimes_room_schedule")
+  @@index([movieId, status, startTime], map: "idx_showtimes_movie_time")
+  @@index([status, startTime], map: "idx_showtimes_close")
+  @@map("showtimes")
+}
+
+model ShowtimeSeat {
+  id            String             @id @default(uuid()) @db.Char(36)
+  showtimeId    String             @map("showtime_id") @db.Char(36)
+  seatId        String             @map("seat_id") @db.Char(36)
+  roomId        String             @map("room_id") @db.Char(36)
+  rowLabel      String             @map("row_label") @db.VarChar(5)
+  seatNumber    Int                @map("seat_number") @db.UnsignedInt
+  seatType      SeatType           @map("seat_type")
+  x             Int                @db.UnsignedInt
+  y             Int                @db.UnsignedInt
+  columnSpan    Int                @default(1) @map("column_span") @db.UnsignedInt
+  status        ShowtimeSeatStatus @default(AVAILABLE)
+  orderId       String?            @map("order_id") @db.Char(36)
+  holdExpiresAt DateTime?          @map("hold_expires_at") @db.DateTime(3)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.DateTime(3)
+  showtime      Showtime           @relation(fields: [showtimeId, roomId], references: [id, roomId], onDelete: Restrict)
+  seat          Seat               @relation(fields: [seatId, roomId], references: [id, roomId], onDelete: Restrict)
+  order         Order?             @relation("SlotOwner", fields: [orderId, showtimeId], references: [id, showtimeId], onDelete: Restrict)
+  orderItems    OrderItem[]
+  @@unique([showtimeId, seatId], map: "uq_showtime_seats_slot")
+  @@unique([id, showtimeId, seatId], map: "uq_showtime_seats_identity")
+  @@index([status, holdExpiresAt], map: "idx_showtime_seats_expiry")
+  @@index([orderId, status], map: "idx_showtime_seats_owner")
+  @@map("showtime_seats")
+}
+
+model PriceRule {
+  id            String     @id @default(uuid()) @db.Char(36)
+  cinemaId      String     @map("cinema_id") @db.Char(36)
+  roomFormat    RoomFormat @map("room_format")
+  dayType       DayType    @map("day_type")
+  timeSlot      TimeSlot   @map("time_slot")
+  basePrice     Int        @map("base_price") @db.UnsignedInt
+  effectiveFrom DateTime   @map("effective_from") @db.Date
+  createdAt     DateTime   @default(now()) @map("created_at") @db.DateTime(3)
+  cinema        Cinema     @relation(fields: [cinemaId], references: [id], onDelete: Restrict)
+  orderItems    OrderItem[]
+  @@unique([cinemaId, roomFormat, dayType, timeSlot, effectiveFrom], map: "uq_price_rules_version")
+  @@map("price_rules")
+}
+
+model SeatSurcharge {
+  id            String   @id @default(uuid()) @db.Char(36)
+  cinemaId      String   @map("cinema_id") @db.Char(36)
+  seatType      SeatType @map("seat_type")
+  amount        Int      @db.UnsignedInt
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  cinema        Cinema   @relation(fields: [cinemaId], references: [id], onDelete: Restrict)
+  orderItems    OrderItem[]
+  @@unique([cinemaId, seatType, effectiveFrom], map: "uq_seat_surcharges_version")
+  @@map("seat_surcharges")
+}
+
+model Holiday {
+  id        String   @id @default(uuid()) @db.Char(36)
+  date      DateTime @unique(map: "uq_holidays_date") @db.Date
+  name      String   @db.VarChar(150)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  @@map("holidays")
+}
+
+model Combo {
+  id          String   @id @default(uuid()) @db.Char(36)
+  name        String   @db.VarChar(150)
+  description String?  @db.Text
+  imageUrl    String?  @map("image_url") @db.VarChar(2048)
+  price       Int      @db.UnsignedInt
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  cinemas     ComboCinema[]
+  orderCombos OrderCombo[]
+  @@index([isActive], map: "idx_combos_active")
+  @@map("combos")
+}
+
+model ComboCinema {
+  id        String   @id @default(uuid()) @db.Char(36)
+  comboId   String   @map("combo_id") @db.Char(36)
+  cinemaId  String   @map("cinema_id") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  combo     Combo    @relation(fields: [comboId], references: [id], onDelete: Restrict)
+  cinema    Cinema   @relation(fields: [cinemaId], references: [id], onDelete: Restrict)
+  @@unique([comboId, cinemaId], map: "uq_combo_cinemas")
+  @@index([cinemaId, comboId], map: "idx_combo_cinemas_cinema")
+  @@map("combo_cinemas")
+}
+
+model Voucher {
+  id           String        @id @default(uuid()) @db.Char(36)
+  cinemaId     String?       @map("cinema_id") @db.Char(36)
+  code         String        @unique(map: "uq_vouchers_code") @db.VarChar(50)
+  name         String        @db.VarChar(150)
+  type         VoucherType
+  value        Int           @db.UnsignedInt
+  maxDiscount  Int?          @map("max_discount") @db.UnsignedInt
+  minOrder     Int           @default(0) @map("min_order") @db.UnsignedInt
+  scope        VoucherScope  @default(ORDER)
+  validFrom    DateTime      @map("valid_from") @db.DateTime(3)
+  validTo      DateTime      @map("valid_to") @db.DateTime(3)
+  totalLimit   Int           @map("total_limit") @db.UnsignedInt
+  perUserLimit Int           @default(1) @map("per_user_limit") @db.UnsignedInt
+  status       VoucherStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.DateTime(3)
+  cinema       Cinema?       @relation(fields: [cinemaId], references: [id], onDelete: Restrict)
+  orders       Order[]
+  redemptions  VoucherRedemption[]
+  @@index([cinemaId, status, validTo], map: "idx_vouchers_cinema_validity")
+  @@map("vouchers")
+}
+
+model Order {
+  id                   String       @id @default(uuid()) @db.Char(36)
+  code                 String       @unique(map: "uq_orders_code") @db.VarChar(14)
+  userId               String?      @map("user_id") @db.Char(36)
+  showtimeId           String       @map("showtime_id") @db.Char(36)
+  source               OrderSource  @default(ONLINE)
+  status               OrderStatus  @default(PENDING_PAYMENT)
+  createdBy            String       @map("created_by") @db.Char(36)
+  customerName         String?      @map("customer_name") @db.VarChar(100)
+  customerEmail        String?      @map("customer_email") @db.VarChar(254)
+  customerPhone        String?      @map("customer_phone") @db.VarChar(10)
+  movieTitleSnapshot   String       @map("movie_title_snapshot") @db.VarChar(255)
+  cinemaNameSnapshot   String       @map("cinema_name_snapshot") @db.VarChar(150)
+  cinemaAddressSnapshot String      @map("cinema_address_snapshot") @db.VarChar(500)
+  roomNameSnapshot     String       @map("room_name_snapshot") @db.VarChar(100)
+  showtimeStartSnapshot DateTime    @map("showtime_start_snapshot") @db.DateTime(3)
+  formatSnapshot       RoomFormat   @map("format_snapshot")
+  languageSnapshot     ShowtimeLanguage @map("language_snapshot")
+  ageRatingSnapshot    AgeRating    @map("age_rating_snapshot")
+  ageConfirmedAt       DateTime?    @map("age_confirmed_at") @db.DateTime(3)
+  ticketSubtotal       Int          @map("ticket_subtotal") @db.UnsignedInt
+  comboSubtotal        Int          @default(0) @map("combo_subtotal") @db.UnsignedInt
+  subtotal             Int          @db.UnsignedInt
+  discount             Int          @default(0) @db.UnsignedInt
+  total                Int          @db.UnsignedInt
+  voucherId            String?      @map("voucher_id") @db.Char(36)
+  voucherSnapshot      Json?        @map("voucher_snapshot")
+  expiresAt            DateTime     @map("expires_at") @db.DateTime(3)
+  paidAt               DateTime?    @map("paid_at") @db.DateTime(3)
+  cancelledAt          DateTime?    @map("cancelled_at") @db.DateTime(3)
+  cancellationReason   String?      @map("cancellation_reason") @db.VarChar(1000)
+  refundStatus         RefundStatus @default(NONE) @map("refund_status")
+  settledPaymentId     String?      @unique(map: "uq_orders_settled_payment") @map("settled_payment_id") @db.Char(36)
+  pointsEarned         Int          @default(0) @map("points_earned") @db.UnsignedInt
+  createdAt            DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.DateTime(3)
+  user                 User?        @relation("OrderCustomer", fields: [userId], references: [id], onDelete: Restrict)
+  creator              User         @relation("OrderCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  showtime             Showtime     @relation(fields: [showtimeId], references: [id], onDelete: Restrict)
+  voucher              Voucher?     @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  settledPayment       Payment?     @relation("OrderSettlement", fields: [settledPaymentId, id], references: [id, orderId], onDelete: Restrict)
+  slots                ShowtimeSeat[] @relation("SlotOwner")
+  items                OrderItem[]
+  combos               OrderCombo[]
+  pendingGuard         PendingOrderGuard?
+  payments             Payment[]    @relation("OrderPayments")
+  voucherRedemptions   VoucherRedemption[]
+  refunds              RefundRequest[]
+  loyaltyTransactions  LoyaltyTransaction[]
+  @@unique([id, showtimeId], map: "uq_orders_id_showtime")
+  @@unique([settledPaymentId, id], map: "uq_orders_settlement_relation")
+  @@index([userId, createdAt], map: "idx_orders_user_history")
+  @@index([status, expiresAt], map: "idx_orders_pending_expiry")
+  @@index([showtimeId, status], map: "idx_orders_showtime_status")
+  @@index([status, paidAt, source], map: "idx_orders_revenue")
+  @@index([createdBy, createdAt], map: "idx_orders_creator")
+  @@index([customerPhone], map: "idx_orders_customer_phone")
+  @@index([customerEmail], map: "idx_orders_customer_email")
+  @@map("orders")
+}
+
+model PendingOrderGuard {
+  id         String   @id @default(uuid()) @db.Char(36)
+  userId     String   @map("user_id") @db.Char(36)
+  showtimeId String   @map("showtime_id") @db.Char(36)
+  orderId    String   @unique(map: "uq_pending_guards_order") @map("order_id") @db.Char(36)
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  showtime   Showtime @relation(fields: [showtimeId], references: [id], onDelete: Restrict)
+  order      Order    @relation(fields: [orderId, showtimeId], references: [id, showtimeId], onDelete: Restrict)
+  @@unique([userId, showtimeId], map: "uq_pending_guards_user_showtime")
+  @@unique([orderId, showtimeId], map: "uq_pending_guards_order_showtime")
+  @@map("pending_order_guards")
+}
+
+model OrderItem {
+  id             String   @id @default(uuid()) @db.Char(36)
+  orderId        String   @map("order_id") @db.Char(36)
+  showtimeSeatId String   @map("showtime_seat_id") @db.Char(36)
+  showtimeId     String   @map("showtime_id") @db.Char(36)
+  seatId         String   @map("seat_id") @db.Char(36)
+  rowLabel       String   @map("row_label") @db.VarChar(5)
+  seatNumber     Int      @map("seat_number") @db.UnsignedInt
+  seatType       SeatType @map("seat_type")
+  x              Int      @db.UnsignedInt
+  y              Int      @db.UnsignedInt
+  columnSpan     Int      @default(1) @map("column_span") @db.UnsignedInt
+  basePrice      Int      @map("base_price") @db.UnsignedInt
+  surcharge      Int      @db.UnsignedInt
+  price          Int      @db.UnsignedInt
+  priceRuleId    String   @map("price_rule_id") @db.Char(36)
+  surchargeId    String   @map("surcharge_id") @db.Char(36)
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  order          Order    @relation(fields: [orderId, showtimeId], references: [id, showtimeId], onDelete: Restrict)
+  slot           ShowtimeSeat @relation(fields: [showtimeSeatId, showtimeId, seatId], references: [id, showtimeId, seatId], onDelete: Restrict)
+  priceRule      PriceRule @relation(fields: [priceRuleId], references: [id], onDelete: Restrict)
+  seatSurcharge  SeatSurcharge @relation(fields: [surchargeId], references: [id], onDelete: Restrict)
+  ticket         Ticket?
+  @@unique([orderId, showtimeSeatId], map: "uq_order_items_order_slot")
+  @@unique([id, orderId, showtimeId, seatId], map: "uq_order_items_identity")
+  @@index([showtimeSeatId, showtimeId, seatId], map: "idx_order_items_slot")
+  @@map("order_items")
+}
+
+model OrderCombo {
+  id          String   @id @default(uuid()) @db.Char(36)
+  orderId     String   @map("order_id") @db.Char(36)
+  comboId     String   @map("combo_id") @db.Char(36)
+  nameSnapshot String  @map("name_snapshot") @db.VarChar(150)
+  quantity    Int      @db.UnsignedInt
+  unitPrice   Int      @map("unit_price") @db.UnsignedInt
+  lineTotal   Int      @map("line_total") @db.UnsignedInt
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  combo       Combo    @relation(fields: [comboId], references: [id], onDelete: Restrict)
+  @@unique([orderId, comboId], map: "uq_order_combos")
+  @@index([comboId], map: "idx_order_combos_combo")
+  @@map("order_combos")
+}
+
+model Ticket {
+  id            String       @id @default(uuid()) @db.Char(36)
+  ticketCode    String       @unique(map: "uq_tickets_code") @map("ticket_code") @db.VarChar(12)
+  orderItemId   String       @unique(map: "uq_tickets_order_item") @map("order_item_id") @db.Char(36)
+  orderId       String       @map("order_id") @db.Char(36)
+  showtimeId    String       @map("showtime_id") @db.Char(36)
+  seatId        String       @map("seat_id") @db.Char(36)
+  status        TicketStatus @default(VALID)
+  qrKeyVersion  Int          @default(1) @map("qr_key_version") @db.UnsignedInt
+  checkedInAt   DateTime?    @map("checked_in_at") @db.DateTime(3)
+  checkedInBy   String?      @map("checked_in_by") @db.Char(36)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.DateTime(3)
+  item          OrderItem    @relation(fields: [orderItemId, orderId, showtimeId, seatId], references: [id, orderId, showtimeId, seatId], onDelete: Restrict)
+  checker       User?        @relation("TicketChecker", fields: [checkedInBy], references: [id], onDelete: Restrict)
+  @@unique([orderItemId, orderId, showtimeId, seatId], map: "uq_tickets_item_relation")
+  @@index([orderId, status], map: "idx_tickets_order_status")
+  @@index([showtimeId, status], map: "idx_tickets_showtime_status")
+  @@index([checkedInBy, checkedInAt], map: "idx_tickets_checkin")
+  @@map("tickets")
+}
+
+model Payment {
+  id                String          @id @default(uuid()) @db.Char(36)
+  orderId           String          @map("order_id") @db.Char(36)
+  attemptNo         Int             @map("attempt_no") @db.UnsignedInt
+  provider          PaymentProvider
+  method            PaymentMethod
+  txnRef            String          @map("txn_ref") @db.VarChar(100)
+  gatewayTxnNo      String?         @map("gateway_txn_no") @db.VarChar(100)
+  amount            Int             @db.UnsignedInt
+  status            PaymentStatus   @default(PENDING)
+  paymentUrl        String?         @map("payment_url") @db.Text
+  requestExpiresAt  DateTime        @map("request_expires_at") @db.DateTime(3)
+  responseCode      String?         @map("response_code") @db.VarChar(50)
+  failureReason     String?         @map("failure_reason") @db.VarChar(1000)
+  paidAt            DateTime?       @map("paid_at") @db.DateTime(3)
+  recordedBy        String?         @map("recorded_by") @db.Char(36)
+  cashReceived      Int?            @map("cash_received") @db.UnsignedInt
+  cashChange        Int?            @map("cash_change") @db.UnsignedInt
+  note              String?         @db.VarChar(1000)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.DateTime(3)
+  order             Order           @relation("OrderPayments", fields: [orderId], references: [id], onDelete: Restrict)
+  settledOrder      Order?          @relation("OrderSettlement")
+  recorder          User?           @relation("PaymentRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  logs              PaymentLog[]
+  refund            RefundRequest?
+  @@unique([id, orderId], map: "uq_payments_id_order")
+  @@unique([orderId, attemptNo], map: "uq_payments_attempt")
+  @@unique([provider, txnRef], map: "uq_payments_provider_ref")
+  @@unique([provider, gatewayTxnNo], map: "uq_payments_gateway_transaction")
+  @@index([status, requestExpiresAt], map: "idx_payments_expiry")
+  @@map("payments")
+}
+
+model PaymentLog {
+  id             String            @id @default(uuid()) @db.Char(36)
+  paymentId      String?           @map("payment_id") @db.Char(36)
+  provider       PaymentProvider
+  txnRef         String?           @map("txn_ref") @db.VarChar(100)
+  channel        PaymentLogChannel
+  rawPayload     Json              @map("raw_payload")
+  rawQuery       String?           @map("raw_query") @db.LongText
+  signatureValid Boolean           @map("signature_valid")
+  amountValid    Boolean?          @map("amount_valid")
+  resultCode     String            @map("result_code") @db.VarChar(100)
+  sourceIp       String?           @map("source_ip") @db.VarChar(45)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.DateTime(3)
+  payment        Payment?          @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  @@index([paymentId, createdAt], map: "idx_payment_logs_payment")
+  @@index([provider, txnRef, createdAt], map: "idx_payment_logs_ref")
+  @@map("payment_logs")
+}
+
+model VoucherRedemption {
+  id         String                  @id @default(uuid()) @db.Char(36)
+  voucherId  String                  @map("voucher_id") @db.Char(36)
+  orderId    String                  @map("order_id") @db.Char(36)
+  userId     String                  @map("user_id") @db.Char(36)
+  status     VoucherRedemptionStatus @default(RESERVED)
+  discount   Int                     @db.UnsignedInt
+  reservedUntil DateTime             @map("reserved_until") @db.DateTime(3)
+  consumedAt DateTime?               @map("consumed_at") @db.DateTime(3)
+  releasedAt DateTime?               @map("released_at") @db.DateTime(3)
+  createdAt  DateTime                @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime                @updatedAt @map("updated_at") @db.DateTime(3)
+  voucher    Voucher                 @relation(fields: [voucherId], references: [id], onDelete: Restrict)
+  order      Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user       User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@unique([orderId, voucherId], map: "uq_voucher_redemptions_order")
+  @@index([voucherId, status, reservedUntil], map: "idx_voucher_redemptions_quota")
+  @@index([voucherId, userId, status, reservedUntil], map: "idx_voucher_redemptions_user")
+  @@map("voucher_redemptions")
+}
+
+model RefundRequest {
+  id            String              @id @default(uuid()) @db.Char(36)
+  orderId       String              @map("order_id") @db.Char(36)
+  paymentId     String              @unique(map: "uq_refunds_payment") @map("payment_id") @db.Char(36)
+  reason        RefundReason
+  status        RefundRequestStatus @default(PENDING)
+  method        RefundMethod?
+  amount        Int                 @db.UnsignedInt
+  cancellationFee Int               @default(0) @map("cancellation_fee") @db.UnsignedInt
+  policySnapshot Json               @map("policy_snapshot")
+  requestedBy   String?             @map("requested_by") @db.Char(36)
+  processedBy   String?             @map("processed_by") @db.Char(36)
+  processedAt   DateTime?           @map("processed_at") @db.DateTime(3)
+  externalReference String?         @map("external_reference") @db.VarChar(255)
+  note          String?             @db.VarChar(1000)
+  createdAt     DateTime            @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.DateTime(3)
+  order         Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  payment       Payment             @relation(fields: [paymentId, orderId], references: [id, orderId], onDelete: Restrict)
+  requester     User?               @relation("RefundRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  processor     User?               @relation("RefundProcessor", fields: [processedBy], references: [id], onDelete: Restrict)
+  @@unique([paymentId, orderId], map: "uq_refunds_payment_order")
+  @@index([status, createdAt], map: "idx_refunds_status")
+  @@index([orderId], map: "idx_refunds_order")
+  @@map("refund_requests")
+}
+
+model LoyaltyTransaction {
+  id        String      @id @default(uuid()) @db.Char(36)
+  userId    String      @map("user_id") @db.Char(36)
+  orderId   String      @map("order_id") @db.Char(36)
+  type      LoyaltyType
+  points    Int         @db.UnsignedInt
+  createdAt DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  @@unique([orderId, type], map: "uq_loyalty_order_type")
+  @@index([userId, createdAt], map: "idx_loyalty_user")
+  @@map("loyalty_transactions")
+}
+
+model Review {
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @map("user_id") @db.Char(36)
+  movieId   String   @map("movie_id") @db.Char(36)
+  rating    Int      @db.UnsignedInt
+  content   String?  @db.VarChar(1000)
+  isHidden  Boolean  @default(false) @map("is_hidden")
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Restrict)
+  @@unique([userId, movieId], map: "uq_reviews_user_movie")
+  @@index([movieId, isHidden, createdAt], map: "idx_reviews_movie_visible")
+  @@map("reviews")
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Char(36)
+  key       String   @unique(map: "uq_settings_key") @db.VarChar(100)
+  value     Json
+  description String? @db.VarChar(255)
+  updatedBy String?  @map("updated_by") @db.Char(36)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  updater   User?    @relation(fields: [updatedBy], references: [id], onDelete: Restrict)
+  @@map("settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Char(36)
+  actorId    String?  @map("actor_id") @db.Char(36)
+  action     String   @db.VarChar(100)
+  entity     String   @db.VarChar(100)
+  entityId   String?  @map("entity_id") @db.Char(36)
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  ip         String?  @db.VarChar(45)
+  requestId  String?  @map("request_id") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([actorId, createdAt], map: "idx_audit_actor")
+  @@index([entity, entityId, createdAt], map: "idx_audit_entity")
+  @@index([action, createdAt], map: "idx_audit_action")
+  @@map("audit_logs")
+}
+
+model IdempotencyKey {
+  id           String            @id @default(uuid()) @db.Char(36)
+  actorId      String            @map("actor_id") @db.Char(36)
+  scope        String            @db.VarChar(100)
+  key          String            @db.VarChar(100)
+  requestHash  String            @map("request_hash") @db.Char(64)
+  status       IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?            @map("response_status") @db.UnsignedInt
+  responseBody Json?             @map("response_body")
+  resourceId   String?           @map("resource_id") @db.Char(36)
+  expiresAt    DateTime          @map("expires_at") @db.DateTime(3)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.DateTime(3)
+  actor        User              @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@unique([actorId, scope, key], map: "uq_idempotency_actor_scope_key")
+  @@index([expiresAt], map: "idx_idempotency_expiry")
+  @@map("idempotency_keys")
+}
+
+model OutboxEvent {
+  id          String       @id @default(uuid()) @db.Char(36)
+  eventType   String       @map("event_type") @db.VarChar(100)
+  aggregateType String     @map("aggregate_type") @db.VarChar(50)
+  aggregateId String       @map("aggregate_id") @db.Char(36)
+  dedupeKey   String       @unique(map: "uq_outbox_dedupe") @map("dedupe_key") @db.VarChar(191)
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0) @db.UnsignedInt
+  availableAt DateTime    @default(now()) @map("available_at") @db.DateTime(3)
+  lockedUntil DateTime?   @map("locked_until") @db.DateTime(3)
+  lockedBy    String?     @map("locked_by") @db.VarChar(100)
+  sentAt      DateTime?   @map("sent_at") @db.DateTime(3)
+  lastError   String?     @map("last_error") @db.VarChar(1000)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
+  @@index([status, availableAt, lockedUntil], map: "idx_outbox_dispatch")
+  @@index([aggregateType, aggregateId], map: "idx_outbox_aggregate")
+  @@map("outbox_events")
+}
