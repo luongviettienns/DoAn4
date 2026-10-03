@@ -2,6 +2,11 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
+import authRoutes from './modules/auth/auth.routes';
+import movieRoutes from './modules/movies/movie.routes';
+import cinemaRoutes from './modules/cinemas/cinema.routes';
+import { errorHandler } from './middleware/error.middleware';
+
 export const createApp = (): Application => {
   const app = express();
 
@@ -29,10 +34,21 @@ export const createApp = (): Application => {
       data: {
         message: 'Cinema Booking API v1',
         version: '1.0.0-design',
+        modules: ['auth', 'movies', 'cinemas'],
       },
       serverTime: new Date().toISOString(),
     });
   });
 
+  // Module Routers
+  app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/movies', movieRoutes);
+  app.use('/api/v1/cinemas', cinemaRoutes);
+
+  // Centralized Error Handling Middleware
+  app.use(errorHandler);
+
   return app;
 };
+
+export default createApp;

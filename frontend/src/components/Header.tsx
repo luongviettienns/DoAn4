@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Film, MapPin, Search, User, Menu, X } from 'lucide-react';
+import { Film, MapPin, Search, User, Menu, X, LogOut, Award } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, openAuthModal, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,7 +17,7 @@ export const Header: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+      className={`fixed top-0 left-0 w-full z-40 transition-all duration-500 ${
         isScrolled
           ? 'bg-[#0B0A0C]/90 backdrop-blur-md border-b border-[#2A2631] py-3.5 shadow-2xl'
           : 'bg-gradient-to-b from-[#0B0A0C]/95 via-[#0B0A0C]/50 to-transparent py-5'
@@ -93,14 +95,41 @@ export const Header: React.FC = () => {
             <Search className="w-5 h-5" />
           </button>
 
-          {/* Login Button */}
-          <button
-            type="button"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-[#0B0A0C] bg-[#FFB23E] hover:bg-[#FFA21A] transition-all shadow-md shadow-[#FFB23E]/20 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EEE6]"
-          >
-            <User className="w-4 h-4" />
-            <span>Đăng nhập</span>
-          </button>
+          {/* User Account / Login State */}
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151318] border border-[#2A2631] text-xs">
+                <div className="w-7 h-7 rounded-full bg-[#FFB23E]/20 text-[#FFB23E] font-bold flex items-center justify-center text-xs">
+                  {user.fullName[0]}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-[#F3EEE6] max-w-[100px] truncate">{user.fullName}</span>
+                  <span className="text-[10px] text-[#FFB23E] flex items-center gap-0.5">
+                    <Award className="w-3 h-3" />
+                    {user.points} điểm
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                title="Đăng xuất"
+                className="p-2.5 rounded-lg text-[#A39E96] hover:text-red-400 hover:bg-[#151318] border border-[#2A2631] transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Đăng xuất"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-[#0B0A0C] bg-[#FFB23E] hover:bg-[#FFA21A] transition-all shadow-md shadow-[#FFB23E]/20 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F3EEE6]"
+            >
+              <User className="w-4 h-4" />
+              <span>Đăng nhập</span>
+            </button>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -150,13 +179,30 @@ export const Header: React.FC = () => {
             </a>
           </nav>
           <div className="pt-4 border-t border-[#2A2631] flex flex-col gap-3">
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-[#0B0A0C] bg-[#FFB23E]"
-            >
-              <User className="w-4 h-4" />
-              <span>Đăng nhập / Đăng ký</span>
-            </button>
+            {user ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-[#F3EEE6]">{user.fullName}</div>
+                  <div className="text-xs text-[#FFB23E]">{user.points} điểm tích lũy</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="px-3 py-1.5 rounded bg-red-950/40 text-red-300 text-xs border border-red-800/60"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); openAuthModal(); }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold text-[#0B0A0C] bg-[#FFB23E]"
+              >
+                <User className="w-4 h-4" />
+                <span>Đăng nhập / Đăng ký</span>
+              </button>
+            )}
           </div>
         </div>
       )}
