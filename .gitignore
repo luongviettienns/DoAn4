@@ -46,6 +46,7 @@ desktop.ini
 # Testing and coverage
 coverage/
 .nyc_output/
+artifacts/
 
 # Python / ML (virtual environments & caches)
 __pycache__/

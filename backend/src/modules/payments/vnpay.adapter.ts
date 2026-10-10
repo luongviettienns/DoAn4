@@ -59,6 +59,11 @@ export class VnpayAdapter {
    */
   verifyReturnUrl(query: Record<string, any>): { isValid: boolean; data: Record<string, any> } {
     const secureHash = query['vnp_SecureHash'];
+    if (typeof secureHash !== 'string' || !/^[a-fA-F0-9]{128}$/.test(secureHash)
+      || Object.values(query).some(value => value !== undefined && typeof value !== 'string')) {
+      return { isValid: false, data: {} };
+    }
+    query = { ...query };
     delete query['vnp_SecureHash'];
     delete query['vnp_SecureHashType'];
 
@@ -68,7 +73,7 @@ export class VnpayAdapter {
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
     return {
-      isValid: secureHash?.toLowerCase() === signed.toLowerCase(),
+      isValid: crypto.timingSafeEqual(Buffer.from(secureHash, 'hex'), Buffer.from(signed, 'hex')),
       data: sortedParams,
     };
   }

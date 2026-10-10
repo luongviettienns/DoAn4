@@ -1,11 +1,14 @@
-import { Prisma, ShowtimeStatus, DayType, TimeSlot, SeatType } from '@prisma/client';
+import { Prisma, ShowtimeStatus, SeatType, Role } from '@prisma/client';
 import prisma from '../../shared/prisma';
-import { NotFoundError, ConflictError } from '../../shared/errors';
+import { NotFoundError, ConflictError, BadRequestError, ForbiddenError } from '../../shared/errors';
+import { resolveShowtimePricing } from '../../shared/showtime-pricing';
+import type { AuthUser } from '../../middleware/auth.middleware';
 import { ListShowtimesQuery, CreateShowtimeInput } from './showtime.schema';
 
 export class ShowtimeService {
   async listShowtimes(query: ListShowtimesQuery) {
     const { movieId, cinemaId, date, format } = query;
+    const now = new Date();
 
     let timeFilter: Prisma.DateTimeFilter | undefined;
     if (date) {
@@ -15,16 +18,18 @@ export class ShowtimeService {
       timeFilter = {
         gte: startOfDay,
         lte: endOfDay,
+        gt: now,
       };
     } else {
       timeFilter = {
-        gte: new Date(), // upcoming only
+        gt: now,
       };
     }
 
     const where: Prisma.ShowtimeWhereInput = {
       status: ShowtimeStatus.OPEN,
       startTime: timeFilter,
+      movie: { isActive: true },
       ...(movieId && { movieId }),
       ...(format && { format }),
       ...(cinemaId && {
@@ -76,7 +81,7 @@ export class ShowtimeService {
     }));
   }
 
-  async getShowtimeSeats(showtimeId: string) {
+  async getShowtimeSeats(showtimeId: string, currentUserId?: string) {
     const showtime = await prisma.showtime.findUnique({
       where: { id: showtimeId },
       include: {
@@ -99,6 +104,7 @@ export class ShowtimeService {
         },
         slots: {
           orderBy: [{ y: 'asc' }, { x: 'asc' }],
+          include: { order: { select: { userId: true, status: true, expiresAt: true } } },
         },
       },
     });
@@ -107,53 +113,25 @@ export class ShowtimeService {
       throw new NotFoundError('SHOWTIME_NOT_FOUND', 'Suất chiếu không tồn tại');
     }
 
-    // Determine DayType (Weekday / Weekend)
-    const showtimeDay = showtime.startTime.getUTCDay();
-    const isWeekend = showtimeDay === 0 || showtimeDay === 6;
-    const dayType = isWeekend ? DayType.WEEKEND : DayType.WEEKDAY;
-
-    // Determine TimeSlot
-    const hour = (showtime.startTime.getUTCHours() + 7) % 24; // UTC+7 hour
-    let timeSlot: TimeSlot = TimeSlot.AFTERNOON;
-    if (hour < 12) timeSlot = TimeSlot.MORNING;
-    else if (hour >= 17) timeSlot = TimeSlot.EVENING;
-
-    // Fetch Base Price from PriceRules
-    const priceRule = await prisma.priceRule.findFirst({
-      where: {
-        cinemaId: showtime.room.cinemaId,
-        roomFormat: showtime.format,
-        dayType,
-        timeSlot,
-      },
-      orderBy: { effectiveFrom: 'desc' },
-    });
-
-    const basePrice = priceRule ? priceRule.basePrice : 95000;
-
-    // Fetch Surcharges
-    const surcharges = await prisma.seatSurcharge.findMany({
-      where: { cinemaId: showtime.room.cinemaId },
-      orderBy: { effectiveFrom: 'desc' },
-    });
-
-    const surchargeMap = new Map<SeatType, number>();
-    for (const s of surcharges) {
-      if (!surchargeMap.has(s.seatType)) {
-        surchargeMap.set(s.seatType, s.amount);
-      }
-    }
+    const { priceRule, surchargeMap } = await resolveShowtimePricing(showtime.room.cinemaId, showtime.format, showtime.startTime);
+    const basePrice = priceRule.basePrice;
 
     // Format seats with computed price and status
+    const now = new Date();
     const seats = showtime.slots.map((slot) => {
-      const surcharge = surchargeMap.get(slot.seatType) || 0;
-      const finalPrice = basePrice + surcharge;
+      const surcharge = surchargeMap.get(slot.seatType);
+      if (slot.seatType !== SeatType.BLOCKED && !surcharge) {
+        throw new BadRequestError('PRICE_NOT_CONFIGURED', 'Rạp chưa cấu hình phụ thu cho loại ghế của suất chiếu');
+      }
+      const finalPrice = slot.seatType === SeatType.BLOCKED ? 0 : basePrice + surcharge!.amount;
 
       // Check if held seat is already expired
       let effectiveStatus = slot.status;
-      if (slot.status === 'HELD' && slot.holdExpiresAt && slot.holdExpiresAt <= new Date()) {
+      if (slot.status === 'HELD' && ((slot.holdExpiresAt && slot.holdExpiresAt <= now)
+        || (slot.order && (slot.order.status !== 'PENDING_PAYMENT' || slot.order.expiresAt <= now)))) {
         effectiveStatus = 'AVAILABLE';
       }
+      if (slot.seatType === SeatType.BLOCKED) effectiveStatus = 'BLOCKED';
 
       return {
         id: slot.id,
@@ -165,6 +143,8 @@ export class ShowtimeService {
         y: slot.y,
         columnSpan: slot.columnSpan,
         status: effectiveStatus,
+        heldByCurrentUser: Boolean(currentUserId && effectiveStatus === 'HELD'
+          && slot.order?.userId === currentUserId && slot.order.status === 'PENDING_PAYMENT' && slot.order.expiresAt > now),
         price: finalPrice,
       };
     });
@@ -190,42 +170,49 @@ export class ShowtimeService {
     };
   }
 
-  async createShowtime(input: CreateShowtimeInput) {
-    const movie = await prisma.movie.findUnique({ where: { id: input.movieId } });
-    if (!movie) throw new NotFoundError('MOVIE_NOT_FOUND', 'Phim không tồn tại');
+  async createShowtime(input: CreateShowtimeInput, actor: Pick<AuthUser, 'role' | 'cinemaIds'>) {
+    return prisma.$transaction(async (tx) => {
+      // Serialize scheduling decisions before reading the room's current schedule.
+      await tx.$queryRaw`SELECT id FROM rooms WHERE id = ${input.roomId} FOR UPDATE`;
+      const room = await tx.room.findUnique({
+        where: { id: input.roomId }, include: { cinema: true, seats: { where: { isActive: true } } },
+      });
+      if (!room) throw new NotFoundError('ROOM_NOT_FOUND', 'Phòng chiếu không tồn tại');
+      if (actor.role !== Role.ADMIN && (actor.role !== Role.MANAGER || !actor.cinemaIds.includes(room.cinemaId))) {
+        throw new ForbiddenError('CINEMA_SCOPE_DENIED', 'Bạn không có quyền quản lý suất chiếu tại rạp này');
+      }
 
-    const room = await prisma.room.findUnique({
-      where: { id: input.roomId },
-      include: { seats: { where: { isActive: true } } },
-    });
-    if (!room) throw new NotFoundError('ROOM_NOT_FOUND', 'Phòng chiếu không tồn tại');
+      const movie = await tx.movie.findUnique({ where: { id: input.movieId } });
+      if (!movie) throw new NotFoundError('MOVIE_NOT_FOUND', 'Phim không tồn tại');
+      if (movie.ageRating === 'C') throw new BadRequestError('MOVIE_PROHIBITED', 'Phim phân loại C không được xếp suất chiếu');
+      if (room.status !== 'ACTIVE') throw new BadRequestError('ROOM_NOT_ACTIVE', 'Phòng đang bảo trì, không thể xếp suất chiếu');
+      if (room.format !== input.format) throw new BadRequestError('ROOM_FORMAT_MISMATCH', 'Định dạng suất chiếu không phù hợp phòng');
 
-    const startTime = new Date(input.startTime);
-    const totalMinutes = movie.durationMin + input.adMinutes;
-    const endTime = new Date(startTime.getTime() + totalMinutes * 60 * 1000);
-    const requiredFreeUntil = new Date(endTime.getTime() + input.cleaningMinutes * 60 * 1000);
+      const startTime = new Date(input.startTime);
+      const endTime = new Date(startTime.getTime() + (movie.durationMin + input.adMinutes) * 60_000);
+      const localStart = new Date(startTime.getTime() + 7 * 60 * 60_000);
+      const localEnd = new Date(endTime.getTime() + 7 * 60 * 60_000);
+      const localDate = localStart.toISOString().slice(0, 10);
+      if (localDate < movie.releaseDate.toISOString().slice(0, 10)) {
+        throw new BadRequestError('MOVIE_NOT_RELEASED', 'Ngày suất chiếu không được trước ngày khởi chiếu của phim');
+      }
+      const timeOfDay = (date: Date) => date.getUTCHours() * 3_600_000 + date.getUTCMinutes() * 60_000 + date.getUTCSeconds() * 1_000 + date.getUTCMilliseconds();
+      if (localDate !== localEnd.toISOString().slice(0, 10) || timeOfDay(localStart) < timeOfDay(room.cinema.openTime) || timeOfDay(localEnd) > timeOfDay(room.cinema.closeTime)) {
+        throw new BadRequestError('CINEMA_CLOSED', 'Toàn bộ suất chiếu phải nằm trong giờ mở cửa rạp');
+      }
 
-    // BR-10: Check overlapping showtimes in the same room
-    const overlapping = await prisma.showtime.findFirst({
-      where: {
-        roomId: input.roomId,
-        status: { not: ShowtimeStatus.CANCELLED },
-        AND: [
-          { startTime: { lt: requiredFreeUntil } },
-          { endTime: { gt: new Date(startTime.getTime() - input.cleaningMinutes * 60 * 1000) } },
-        ],
-      },
-    });
+      const requiredFreeUntil = new Date(endTime.getTime() + input.cleaningMinutes * 60_000);
+      const overlapping = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM showtimes
+        WHERE room_id = ${room.id} AND status <> 'CANCELLED'
+          AND start_time < ${requiredFreeUntil}
+          AND DATE_ADD(end_time, INTERVAL cleaning_minutes MINUTE) > ${startTime}
+        LIMIT 1
+      `;
+      if (overlapping.length) {
+        throw new ConflictError('SHOWTIME_OVERLAP', 'Phòng đã có suất chiếu hoặc chưa đủ thời gian dọn phòng giữa hai suất');
+      }
 
-    if (overlapping) {
-      throw new ConflictError(
-        'SHOWTIME_OVERLAP',
-        'Phòng chiếu đã có suất chiếu khác trong khoảng thời gian này hoặc không đủ 15 phút dọn phòng (BR-10)'
-      );
-    }
-
-    // Create Showtime and its ShowtimeSeats
-    const showtime = await prisma.$transaction(async (tx) => {
       const st = await tx.showtime.create({
         data: {
           movieId: input.movieId,
@@ -250,15 +237,183 @@ export class ShowtimeService {
         x: seat.x,
         y: seat.y,
         columnSpan: seat.columnSpan,
+        status: seat.type === SeatType.BLOCKED ? 'BLOCKED' as const : 'AVAILABLE' as const,
       }));
 
       await tx.showtimeSeat.createMany({ data: showtimeSeatsData });
       return st;
+    }, { maxWait: 10_000, timeout: 15_000 });
+  }
+
+  async cancelShowtime(id: string, reason: string, actor: Pick<AuthUser, 'id' | 'role' | 'cinemaIds'>) {
+    const showtime = await prisma.showtime.findUnique({
+      where: { id },
+      include: { room: { select: { cinemaId: true } } },
     });
 
-    return showtime;
+    if (!showtime) {
+      throw new NotFoundError('SHOWTIME_NOT_FOUND', 'Suất chiếu không tồn tại');
+    }
+
+    if (actor.role !== Role.ADMIN) {
+      if ((actor.role !== Role.MANAGER && actor.role !== Role.STAFF) || !actor.cinemaIds || !actor.cinemaIds.includes(showtime.room.cinemaId)) {
+        throw new ForbiddenError('CINEMA_SCOPE_DENIED', 'Bạn không có quyền quản lý suất chiếu tại rạp này');
+      }
+    }
+
+    if (showtime.status === ShowtimeStatus.CANCELLED) {
+      throw new BadRequestError('SHOWTIME_ALREADY_CANCELLED', 'Suất chiếu đã được hủy trước đó');
+    }
+
+    return prisma.$transaction(async (tx) => {
+      return cancelSingleShowtimeTx(tx, showtime, reason, actor.id);
+    }, { timeout: 15_000 });
   }
+}
+
+export async function cancelSingleShowtimeTx(
+  tx: Prisma.TransactionClient,
+  showtime: { id: string; status: ShowtimeStatus },
+  reason: string,
+  actorId?: string | null
+) {
+  const now = new Date();
+
+  const updatedShowtime = await tx.showtime.update({
+    where: { id: showtime.id },
+    data: {
+      status: ShowtimeStatus.CANCELLED,
+      cancelledAt: now,
+      cancellationReason: reason,
+    },
+  });
+
+  const orders = await tx.order.findMany({
+    where: {
+      showtimeId: showtime.id,
+      status: { in: ['PENDING_PAYMENT', 'PAID'] },
+    },
+    include: {
+      items: {
+        include: { ticket: true },
+      },
+      payments: true,
+    },
+  });
+
+  for (const order of orders) {
+    const isPaid = order.status === 'PAID';
+    if (isPaid) {
+      await tx.ticket.updateMany({
+        where: { orderId: order.id, status: 'VALID' },
+        data: { status: 'CANCELLED' },
+      });
+
+      const settledPaymentId = order.settledPaymentId || order.payments.find((p) => p.status === 'SUCCESS')?.id;
+      if (settledPaymentId) {
+        await tx.refundRequest.upsert({
+          where: { paymentId: settledPaymentId },
+          update: {
+            reason: 'SHOWTIME_CANCELLED',
+            status: 'PENDING',
+            amount: order.total,
+            cancellationFee: 0,
+            policySnapshot: { reason },
+            requestedBy: actorId || null,
+          },
+          create: {
+            orderId: order.id,
+            paymentId: settledPaymentId,
+            reason: 'SHOWTIME_CANCELLED',
+            status: 'PENDING',
+            amount: order.total,
+            cancellationFee: 0,
+            policySnapshot: { reason },
+            requestedBy: actorId || null,
+          },
+        });
+      }
+
+      if (order.userId && order.pointsEarned > 0) {
+        await tx.user.update({
+          where: { id: order.userId },
+          data: { points: { decrement: order.pointsEarned } },
+        });
+
+        await tx.loyaltyTransaction.upsert({
+          where: { orderId_type: { orderId: order.id, type: 'REVERT' } },
+          update: { points: order.pointsEarned },
+          create: {
+            userId: order.userId,
+            orderId: order.id,
+            type: 'REVERT',
+            points: order.pointsEarned,
+          },
+        });
+      }
+
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: now,
+          cancellationReason: reason,
+          refundStatus: 'PENDING',
+        },
+      });
+    } else {
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: now,
+          cancellationReason: reason,
+        },
+      });
+    }
+
+    await tx.pendingOrderGuard.deleteMany({
+      where: { orderId: order.id },
+    });
+
+    await tx.voucherRedemption.updateMany({
+      where: { orderId: order.id },
+      data: { status: 'RELEASED', releasedAt: now },
+    });
+
+    await tx.payment.updateMany({
+      where: { orderId: order.id, status: 'PENDING' },
+      data: { status: 'FAILED', failureReason: 'Suất chiếu bị hủy' },
+    });
+  }
+
+  await tx.showtimeSeat.updateMany({
+    where: {
+      showtimeId: showtime.id,
+      seatType: { not: SeatType.BLOCKED },
+      status: { in: ['HELD', 'SOLD'] },
+    },
+    data: {
+      status: 'AVAILABLE',
+      orderId: null,
+      holdExpiresAt: null,
+    },
+  });
+
+  await tx.auditLog.create({
+    data: {
+      actorId: actorId || null,
+      action: 'SHOWTIME_CANCEL',
+      entity: 'Showtime',
+      entityId: showtime.id,
+      oldValue: { status: showtime.status },
+      newValue: { status: 'CANCELLED', cancellationReason: reason },
+    },
+  });
+
+  return updatedShowtime;
 }
 
 export const showtimeService = new ShowtimeService();
 export default showtimeService;
+

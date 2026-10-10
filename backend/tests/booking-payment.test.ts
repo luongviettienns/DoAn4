@@ -28,8 +28,8 @@ describe('Phase 4: Booking & VNPay Payment Integration (F03, F04, F05)', () => {
     customerToken = registerRes.body.data.accessToken;
     customerId = registerRes.body.data.user.id;
 
-    // 2. Tìm một suất chiếu đang OPEN
-    const showtime = await prisma.showtime.findFirst({
+    // 2. Tìm suất chiếu OPEN có nhiều ghế AVAILABLE nhất (ít nhất 5)
+    const showtimes = await prisma.showtime.findMany({
       where: { status: 'OPEN' },
       include: {
         slots: {
@@ -38,9 +38,10 @@ describe('Phase 4: Booking & VNPay Payment Integration (F03, F04, F05)', () => {
         },
       },
     });
+    const showtime = showtimes.sort((a, b) => b.slots.length - a.slots.length)[0];
 
     if (!showtime || showtime.slots.length < 5) {
-      throw new Error('Cần ít nhất 5 ghế AVAILABLE cho kịch bản kiểm thử');
+      throw new Error(`Cần ít nhất 5 ghế AVAILABLE cho kịch bản kiểm thử (có ${showtime?.slots.length ?? 0})`);
     }
 
     showtimeId = showtime.id;

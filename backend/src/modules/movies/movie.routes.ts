@@ -8,6 +8,12 @@ const router = Router();
 
 // Public endpoints
 router.get('/', movieController.list);
+router.get('/genres', movieController.listGenres);
+
+// TMDB endpoints (cho nhân viên / quản lý / admin tra cứu khi nhập liệu)
+router.get('/tmdb/search', authenticate, requireRole(Role.ADMIN, Role.MANAGER, Role.STAFF), movieController.searchTmdb);
+router.get('/tmdb/:tmdbId', authenticate, requireRole(Role.ADMIN, Role.MANAGER, Role.STAFF), movieController.getTmdbDetails);
+
 router.get('/:id', movieController.getById);
 
 // Admin / Manager endpoints

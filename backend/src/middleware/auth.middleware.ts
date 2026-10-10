@@ -122,3 +122,6 @@ export const optionalAuth = async (
     next(error);
   }
 };
+
+export const requireAuth = authenticate;
+export { requireRole, requireRole as requireRoles } from './rbac.middleware';

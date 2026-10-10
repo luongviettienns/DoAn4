@@ -25,7 +25,7 @@ export class PaymentController {
 
       if (req.accepts('html')) {
         // Nếu trình duyệt redirect tới, chuyển tiếp người dùng về Frontend kèm params
-        const redirectUrl = `${frontendUrl}?orderId=${result.orderId || ''}&code=${result.code || ''}&status=${result.success ? 'SUCCESS' : 'FAILED'}&amount=${result.amount || 0}&message=${encodeURIComponent(result.message)}`;
+        const redirectUrl = `${frontendUrl}?orderId=${result.orderId || ''}&code=${result.code || ''}&status=${result.status || (result.success ? 'SUCCESS' : 'FAILED')}&amount=${result.amount || 0}&message=${encodeURIComponent(result.message)}`;
         return res.redirect(redirectUrl);
       }
 
@@ -40,7 +40,7 @@ export class PaymentController {
    */
   async simulateMock(req: Request, res: Response, next: NextFunction) {
     try {
-      const { orderId } = req.body;
+      const orderId = req.params.orderId || req.body.orderId;
       const userId = req.user?.id;
       const result = await paymentService.simulatePaymentSuccess(orderId, userId);
       return sendSuccess(res, result);

@@ -28,7 +28,7 @@ describe('Showtimes & Seat Map API (F11, F02, F12)', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeGreaterThan(0);
 
-    const firstShowtime = res.body.data[0];
+    const firstShowtime = res.body.data.find((s: { roomName?: string }) => s.roomName?.includes('1')) || res.body.data[0];
     showtimeId = firstShowtime.id;
     movieId = firstShowtime.movieId;
     roomId = firstShowtime.roomId;

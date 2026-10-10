@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { movieService } from './movie.service';
 import { listMoviesQuerySchema, createMovieSchema, updateMovieSchema } from './movie.schema';
 import { sendSuccess, sendPaginated } from '../../shared/response';
+import { tmdbService } from '../../shared/tmdb.service';
 
 export class MovieController {
   list = async (req: Request, res: Response, next: NextFunction) => {
@@ -48,8 +49,38 @@ export class MovieController {
   delete = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = req.params.id as string;
-      await movieService.deleteMovie(id);
+      await movieService.deleteMovie(id, req.user?.id);
       return sendSuccess(res, { message: 'Đã ẩn phim thành công' }, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  listGenres = async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const genres = await movieService.listGenres();
+      return sendSuccess(res, genres, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  searchTmdb = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const query = String(req.query.query || '').trim();
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const data = await tmdbService.searchMovies(query, page);
+      return sendSuccess(res, data, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTmdbDetails = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const tmdbId = Number(req.params.tmdbId);
+      const data = await tmdbService.getMovieDetails(tmdbId);
+      return sendSuccess(res, data, 200);
     } catch (error) {
       next(error);
     }

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { showtimeService } from './showtime.service';
-import { listShowtimesQuerySchema, createShowtimeSchema } from './showtime.schema';
+import { listShowtimesQuerySchema, createShowtimeSchema, cancelShowtimeSchema } from './showtime.schema';
 import { sendSuccess } from '../../shared/response';
 
 export class ShowtimeController {
@@ -17,7 +17,7 @@ export class ShowtimeController {
   getSeats = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = req.params.id as string;
-      const data = await showtimeService.getShowtimeSeats(id);
+      const data = await showtimeService.getShowtimeSeats(id, req.user?.id);
       return sendSuccess(res, data, 200);
     } catch (error) {
       next(error);
@@ -27,8 +27,19 @@ export class ShowtimeController {
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validated = createShowtimeSchema.parse(req.body);
-      const showtime = await showtimeService.createShowtime(validated);
+      const showtime = await showtimeService.createShowtime(validated, req.user!);
       return sendSuccess(res, showtime, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  cancel = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = req.params.id as string;
+      const { reason } = cancelShowtimeSchema.parse(req.body);
+      const result = await showtimeService.cancelShowtime(id, reason, req.user!);
+      return sendSuccess(res, result, 200);
     } catch (error) {
       next(error);
     }

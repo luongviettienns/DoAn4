@@ -47,7 +47,7 @@ export class CinemaController {
   createRoom = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validated = createRoomSchema.parse(req.body);
-      const room = await cinemaService.createRoom(validated);
+      const room = await cinemaService.createRoom(validated, req.user);
       return sendSuccess(res, room, 201);
     } catch (error) {
       next(error);

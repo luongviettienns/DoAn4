@@ -1,8 +1,77 @@
 # 05. Thiết kế REST API
 
-> Hợp đồng để triển khai Node.js + Prisma + MySQL và React + RTK Query. Repository chưa có backend hoạt động. Đọc cùng [01. Yêu cầu](01-tong-quan-va-yeu-cau.md), [02. Luồng F01–F19](02-luong-chuc-nang.md), [03. Màn hình](03-mo-ta-man-hinh.md), [04. Dữ liệu](04-thiet-ke-csdl.md) và [06. Kiến trúc](06-kien-truc-he-thong.md). [openapi.json](openapi.json) chứa toàn bộ endpoint, query, body, response, security và role/scope, theo OpenAPI 3.0.3 để import Swagger Editor/UI hoặc Postman.
+> Backend Node.js + Prisma + MySQL và frontend React đã có luồng Stage 1 hoạt động. Mục 0 và các operation `x-implementation-status=implemented` trong [openapi.json](openapi.json) mô tả contract hiện tại đã đối chiếu mã nguồn. Phần còn lại giữ hợp đồng thiết kế F01–F19 và không chứng minh endpoint/policy đã triển khai. Đọc cùng [01. Yêu cầu](01-tong-quan-va-yeu-cau.md), [02. Luồng F01–F19](02-luong-chuc-nang.md), [03. Màn hình](03-mo-ta-man-hinh.md), [04. Dữ liệu](04-thiet-ke-csdl.md) và [06. Kiến trúc](06-kien-truc-he-thong.md).
 
-## 1. Quy ước và lựa chọn MVP
+## 0. Contract Stage 1 đã đối chiếu mã nguồn
+
+Phạm vi cập nhật ngày 04/10/2026: discovery công khai → giữ ghế ngay → sửa cùng đơn → VNPay → đọc trạng thái đơn/vé do IPN xác nhận. Nguồn thực thi là các route/controller/schema/service trong `backend/src/modules/{movies,cinemas,showtimes,orders,payments}`, wrapper `backend/src/shared/response.ts` và client `frontend/src/services/api.ts`. Đây là đối chiếu contract; không phải chứng nhận production hoặc toàn bộ F01–F19 đã hoàn tất.
+
+OpenAPI 3.0.3 đánh dấu từng operation: `implemented` là 14 operation dưới đây; `design` giữ mục tiêu thiết kế chưa được xác minh trong đợt Stage 1 này. Trạng thái `design` không tự khẳng định route vắng mặt trong backend. Schema `Stage1*` mô tả DTO hiện tại; schema cũ như `Order`, `ShowtimeSeatMap`, `Error` được giữ để tham khảo thiết kế. Các mục 1–4 và 6–8 bên dưới là **thiết kế mục tiêu**, trừ phần được dẫn lại rõ trong mục 0. Bảng mục 5 ghi rõ các dòng đã đối chiếu.
+
+### 0.1 Endpoint hiện tại
+
+Base URL: `http://localhost:3000/api/v1`. Chi tiết/lệnh và danh sách không phân trang trả `{success:true,data,serverTime}`; riêng `GET /movies` thêm `meta:{page,limit,total}`. `serverTime` và timestamp là ISO UTC. IPN dùng ACK thô. Lỗi dùng `Stage1Error`, mã lỗi runtime là chuỗi và có thể khác enum thiết kế `Error`.
+
+| Method / path | Query hoặc body hiện tại | Response thành công | Quyền hiện tại |
+|---|---|---|---|
+| `GET /movies` | `status`, `genreId` (một UUID), `search`, `page=1`, `limit=20` (1..100) | 200 `Stage1MoviePage` | PUBLIC |
+| `GET /movies/{id}` | — | 200 `Stage1MovieResponse`; tối đa 50 upcomingShowtimes | PUBLIC |
+| `GET /cinemas` | `city` khớp chính xác sau trim | 200 `Stage1CinemaListResponse`; không meta | PUBLIC |
+| `GET /cinemas/{id}` | — | 200 `Stage1CinemaResponse`; rooms ACTIVE, `_count.seats` | PUBLIC |
+| `GET /showtimes` | `movieId`, `cinemaId`, `date` YYYY-MM-DD tại UTC+7, `format` | 200 `Stage1ShowtimeListResponse`; không meta | PUBLIC |
+| `GET /showtimes/{id}/seats` | — | 200 `Stage1SeatInventoryResponse`; seats phẳng | PUBLIC, bearer tùy chọn |
+| `POST /orders` | `Stage1CreateOrder`: showtimeId, seatIds (1..8), ageConfirmed?, combos?, voucherCode? | 201 `Stage1OrderResponse` | Bearer, tạo đơn cho tài khoản hiện tại |
+| `GET /orders/pending` | `showtimeId` tùy chọn | 200 `Stage1PendingOrderResponse`; data=null khi không có hold còn hạn | Bearer OWN |
+| `GET /orders/{id}` | — | 200 `Stage1OrderResponse` | CUSTOMER OWN; STAFF/MANAGER CINEMA; ADMIN SYSTEM |
+| `PATCH /orders/{id}` | `Stage1OrderUpdate`: seatIds?, ageConfirmed?, combos?, voucherCode?; ít nhất một field | 200 `Stage1OrderResponse` | Bearer, chỉ chủ đơn |
+| `POST /orders/{id}/cancel` | `Stage1CancelOrder`: reason?, pendingOnly?; UI dùng pendingOnly=true | 200 `Stage1CancelResponse`; data={success:true,message} | OWN/CINEMA/SYSTEM như GET detail |
+| `POST /orders/{id}/pay` | `Stage1PayRequest`: method=VNPAY, locale=vn hoặc en | 200 `Stage1PayResponse`; paymentUrl là chuỗi | Bearer, chỉ chủ đơn |
+| `GET /payment/vnpay/ipn` | Query provider có chữ ký; amount×100, txnRef, responseCode, transactionStatus | 200 `VnpayAck` thô | PUBLIC, service verify HMAC |
+| `GET /payment/vnpay/return` | Query provider có chữ ký; chọn response bằng Accept | 302 Location khi nhận HTML; 200 `Stage1VnpayReturnResponse` khi Accept application/json | PUBLIC, service verify HMAC |
+
+`GET /movies` chỉ lọc isActive, sort releaseDate DESC rồi createdAt DESC; status còn nhận ENDED. Không triển khai các filter thiết kế `q`, `genre`, cinemaId/date/ageRating/sort tại route này. `GET /showtimes` chỉ trả OPEN, phim isActive, startTime > hiện tại; date luôn loại suất đã bắt đầu. Format query nhận `2D`, `3D`, `TWO_D`, `THREE_D`, `IMAX`; response hiện trả `TWO_D`/`THREE_D`/`IMAX`. releaseDate/endDate và openTime/closeTime hiện serialize từ Prisma DateTime thành timestamp ISO, không phải chuỗi date/giờ thiết kế.
+
+### 0.2 Giữ ghế và sửa cùng đơn
+
+Inventory hiện tại là `{showtime,movie,cinema,room,seats:[]}`. Mỗi seat có `id` (showtime-seat ID), `seatId` (seat UUID dùng khi đặt), rowLabel, seatNumber, seatType, x, y, columnSpan, status, price và **heldByCurrentUser boolean**. Không có ownerId, heldByUserId, orderId hoặc holdExpiresAt trong DTO công khai. Bearer hợp lệ giúp backend tính hold của chính tài khoản; guest nhận false. Hold hết hạn được đọc như AVAILABLE ngay cả khi worker chưa nhả DB; ghế BLOCKED có status BLOCKED, price=0.
+
+Sau chọn ghế đầu tiên, gọi `POST /orders` để giữ thật. Dùng id/expiresAt do server trả về; thay ghế/combo/voucher bằng `PATCH /orders/{id}`, không tạo đơn mới để sửa lựa chọn. Nếu có pending cùng user+showtime, POST trả 409 `ACTIVE_PENDING_ORDER`; đọc `GET /orders/pending?showtimeId=...` để khôi phục. PATCH giữ nguyên id và expiresAt, claim/release ghế atomically; bỏ field giữ giá trị cũ, seatIds/combos thay toàn bộ lựa chọn, `combos:[]` xóa combo, `voucherCode:null` gỡ voucher. Không lặp seatId/comboId trong PATCH. Field không biết bị Zod loại bỏ, không bị từ chối như thiết kế mục 8.
+
+`Stage1Order` có snapshot, items[], combos[], voucher nullable, tổng tiền, expiresAt, payments[]. Vé nằm trong `items[].ticket` (null trước fulfillment), không có tickets[] cấp đơn. DTO hiện không có pricingLocked, paymentInProgress, expectedPoints, settledPaymentId hoặc refunds. GET đọc pending quá hạn thành EXPIRED; snapshot.posterUrl và snapshot.endTime vẫn lấy từ phim/suất hiện tại.
+
+Mã lỗi giữ/sửa đáng chú ý: 400 `AGE_CONFIRMATION_REQUIRED`/`AGE_RESTRICTED`/`BOOKING_CLOSED`/`INVALID_SEATS`; 409 `ACTIVE_PENDING_ORDER`/`SEAT_ALREADY_RESERVED`/`ORDER_NOT_PENDING`/`PAYMENT_IN_PROGRESS`; 410 `ORDER_EXPIRED`. PATCH hiện chặn khi còn attempt PENDING, chưa khóa vĩnh viễn mọi attempt cũ. Cancel với pendingOnly=true trả 409 ORDER_NOT_PENDING nếu đơn vừa PAID, tránh thao tác thoát UI hủy vé đã thanh toán. Cancel trả message DTO; muốn xem trạng thái mới phải GET order.
+
+Ví dụ PATCH sau khi đã giữ ghế (UUID chỉ minh họa):
+
+`PATCH /api/v1/orders/55555555-5555-4555-8555-555555555555`
+
+```json
+{"seatIds":["11111111-1111-4111-8111-111111111111"],"combos":[{"comboId":"66666666-6666-4666-8666-666666666666","quantity":1}],"voucherCode":null}
+```
+
+Response cancel hiện tại:
+
+```json
+{"success":true,"data":{"success":true,"message":"Đã hủy đơn hàng giữ chỗ"},"serverTime":"2026-10-04T01:30:00.000Z"}
+```
+
+### 0.3 Thanh toán và kết quả do IPN xác nhận
+
+Pay lấy order.total phía server và tạo VNPay attempt. IPN verify HMAC-SHA512, lookup txnRef, so amount/100; chỉ responseCode=00 và transactionStatus=00 mới ghi payment SUCCESS. Khi pending còn hạn và mọi ghế HELD vẫn thuộc đơn, transaction chuyển order PAID, ghế SOLD, phát ticket, tiêu thụ voucher và cộng điểm. Callback thành công sau khi mất hold ghi khoản thu và yêu cầu hoàn: PAID_UNFULFILLED/refund PENDING khi chưa có đơn PAID; attempt thu trùng tạo refund riêng và giữ PAID. Chưa có nhánh reclaim ghế của thiết kế mục 4.
+
+Return **chỉ đọc**, không fulfill. Accept HTML (kể cả `*/*` theo Express) redirect 302 tới FRONTEND_PAYMENT_RESULT_URL với query `orderId,code,status,amount,message`; Accept application/json trả envelope. Khi valid callback báo 00/00 nhưng IPN chưa chốt, return status=PENDING. SUCCESS chỉ có khi payment SUCCESS và order PAID. Chữ ký/payment/amount sai trả kết quả false và không tiết lộ orderId. `code` là mã đơn trong kết quả hợp lệ; kết quả lỗi dùng INVALID_SIGNATURE/PAYMENT_NOT_FOUND/INVALID_AMOUNT.
+
+Trang kết quả phải đọc/poll `GET /orders/{id}` bằng phiên hiện tại; query redirect chỉ là gợi ý và không đủ để hiển thị vé. Chỉ coi là đã thanh toán khi API trả PAID cùng ticket. Nếu IPN còn trễ, tiếp tục hiển thị đang xác nhận; PAID_UNFULFILLED là khoản thu cần hoàn, không phải vé hợp lệ.
+
+### 0.4 Chính sách thiết kế chưa được runtime Stage 1 bảo đảm
+
+- Client có gửi Idempotency-Key cho create/cancel/pay, nhưng controller/service hiện chưa đọc/lưu/replay. Header này không bắt buộc trong các operation implemented; retry POST có thể tạo attempt mới hoặc gặp ACTIVE_PENDING_ORDER. Khi mất response create, đọc pending trước khi thử tạo lại.
+- Pay hiện tạo attempt mới mỗi lần gọi, chưa tái sử dụng attempt/URL PENDING, chưa kiểm còn ít nhất 60 giây, chưa xử lý tổng 0 bằng INTERNAL/FREE. requestExpiresAt lưu theo expiresAt, nhưng adapter chưa gửi vnp_ExpireDate.
+- Chưa có pricingLocked trong DTO hoặc khóa sửa vĩnh viễn sau mọi payment attempt. PATCH chỉ chặn attempt PENDING; pricing của ghế/combo giữ lại dùng snapshot, phần mới dùng catalog hiện tại.
+- Verify callback hiện có kiểm scalar/HMAC và amount, nhưng chưa đối chiếu TmnCode hoặc ghi PaymentLog/outbox tại payment service. Return đang dùng redirect 302 và không có Cache-Control:no-store/allowlist middleware được mô tả trong thiết kế.
+- Các route auth, combo/voucher catalog, lịch sử/quầy/checkin/báo cáo và vận hành ngoài 14 operation trên chưa được đồng bộ contract trong đợt này. Có route đang tồn tại nhưng DTO/policy vẫn cần audit riêng; nhãn design không phải danh sách route 404.
+
+## 1. Quy ước và lựa chọn MVP (thiết kế mục tiêu)
 
 Base URL ứng dụng là `/api/v1`; bảng endpoint ghi path tương đối. Giữ callback số ít: `/api/v1/payment/vnpay/ipn` và `/api/v1/payment/vnpay/return`. Hai endpoint health và service ML nội bộ dùng server riêng, được mô tả trong phụ lục và có `servers` override trong OpenAPI.
 
@@ -54,7 +123,7 @@ Giữ nguyên mã nghiệp vụ trong phụ lục D của 02. `details` luôn l�
 
 CSRF/sai role dùng `FORBIDDEN`; media hoặc đầu vào sai dùng 400 `VALIDATION_ERROR`. Hai mã mở rộng của tài liệu này là `IDEMPOTENCY_KEY_REUSED` và `IDEMPOTENCY_IN_PROGRESS` (HTTP 409); không đổi mapping mã gốc trong 02. QR/mã vé không hợp lệ là 400, vé đã dùng/hủy/sai suất/sai rạp/ngoài window là 409. Chặn role trước lookup trả 403; object ngoài scope thường trả 404. Checkin biết vé ở rạp khác trả `WRONG_CINEMA` nhưng không tiết lộ thông tin vé/rạp ngoài quyền. IPN dùng ACK provider, không áp envelope này.
 
-## 2. Xác thực, phân quyền và scope
+## 2. Xác thực, phân quyền và scope (thiết kế mục tiêu)
 
 ### 2.1 JWT, refresh cookie và CSRF/CORS
 
@@ -81,7 +150,7 @@ ADMIN không tự động có quyền quầy/soát: `/counter/*` và `/checkin*`
 
 `GET /orders/{id}` cho CUSTOMER OWN, STAFF/MANAGER CINEMA, ADMIN SYSTEM. `GET /me/orders` và `/me/orders/{id}` chỉ CUSTOMER. Mọi role có `/me`. Danh sách và count áp scope ngay trong query DB. Báo cáo `type=CINEMA` chỉ ADMIN. Cấm tự khóa/hạ quyền và giữ ít nhất một ADMIN ACTIVE bằng transaction lock. Chuyển role STAFF/MANAGER cần ít nhất một rạp cùng transaction; CUSTOMER/ADMIN không giữ assignment.
 
-## 3. Idempotency và transaction cho ghế/tiền
+## 3. Idempotency và transaction cho ghế/tiền (thiết kế mục tiêu)
 
 Header `Idempotency-Key: <UUID>` bắt buộc với tạo đơn online/quầy, pay, hủy pending/paid/quầy/suất, confirm-payment quầy, confirm-refund, checkin và bulk create. Khóa theo `(actorId,method,path,key)`, lưu canonical request hash, trạng thái và HTTP response. TTL replay 24 giờ. Cùng key/body trả nguyên response lần đầu; khác body trả 409 `IDEMPOTENCY_KEY_REUSED`; đang chạy trả 409 `IDEMPOTENCY_IN_PROGRESS`, `Retry-After:1`. Kiểm quyền hiện tại trước replay. Vì response cũ có thể mô tả trạng thái cũ, frontend GET lại order sau replay. Unique/conditional update vẫn giữ invariant khi key hết TTL.
 
@@ -101,7 +170,7 @@ Bảng giá đã có đơn tham chiếu là bất biến: muốn đổi tạo b�
 
 Manual refund xác nhận bằng **refundId**, không chỉ orderId, sau khi bên ngoài đã hoàn tiền; nhập method/manualReference/notes. Mỗi payment có tối đa một yêu cầu hoàn, một order có thể có nhiều yêu cầu. `orders.refundStatus` chỉ phản ánh khoản hoàn của **settledPaymentId**: NONE/PENDING/REFUNDED theo khoản thu chính. RefundRequest của payment thu trùng theo dõi riêng trong danh sách hoàn, không đổi refundStatus hoặc trạng thái PAID của đơn. PAID_UNFULFILLED sau khi hoàn khoản thu chính chuyển CANCELLED. Không trừ điểm hoặc trả voucher lần hai lúc confirm refund.
 
-## 4. VNPay sandbox: request ký hash, IPN và return
+## 4. VNPay sandbox: request ký hash, IPN và return (thiết kế mục tiêu)
 
 Theo [tài liệu PAY chính thức VNPay](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html), tích hợp 2.1.0 dùng GET, amount×100, HMAC-SHA512 và txnRef duy nhất; IPN cập nhật trạng thái, return chỉ hiển thị. ACK: 00 xác nhận, 01 không tìm thấy, 02 đã xác nhận, 04 sai tiền, 97 sai chữ ký, 99 lỗi xử lý. Thành công cần ResponseCode và TransactionStatus đều 00. Dữ liệu ký sắp theo tên và URLencode, bỏ SecureHash/SecureHashType khi verify. Nguồn kiểm ngày 03/10/2026; đối chiếu cấu hình merchant trước tích hợp thực.
 
@@ -124,7 +193,7 @@ Return verify/log rồi HTTP 303 đến `/payment/result?orderId=...&returnStatu
 
 ## 5. Danh mục endpoint theo F01–F19
 
-Bảng khớp một-một với OpenAPI cho API ứng dụng. Path UUID luôn bắt buộc. Cột body ghi request schema; response ghi schema đầy đủ gồm wrapper/meta/serverTime (tên kết thúc Response hoặc Page). Query có `!` là bắt buộc. `★` cần Idempotency-Key; `◇` tùy chọn. Role/scope ghi `ROLE:SCOPE`. IPN dùng response thô; return redirect; health/ML nằm trong phụ lục vì server riêng.
+Các dòng có **[Stage 1]** đã đồng bộ với operation implemented và schema Stage1* trong OpenAPI. Các dòng khác giữ hợp đồng thiết kế và operation design; không phải xác nhận runtime đã triển khai. Path UUID luôn bắt buộc. Cột body ghi request schema; response ghi schema đầy đủ gồm wrapper/meta/serverTime (tên kết thúc Response hoặc Page). Query có `!` là bắt buộc. `★` cần Idempotency-Key; `◇` tùy chọn. Role/scope ghi `ROLE:SCOPE`. IPN dùng response thô; return redirect; health/ML nằm trong phụ lục vì server riêng.
 
 ### F01. Tài khoản và xác thực
 
@@ -149,14 +218,14 @@ Bảng khớp một-một với OpenAPI cho API ứng dụng. Path UUID luôn b�
 
 | Method / path | Query | Body | Thành công | Role / scope |
 |---|---|---|---|---|
-| `GET /movies` | `status`, `genre`, `q`, `cinemaId`, `date`, `ageRating`, `sort`, `page`, `limit` | — | 200 `MoviePage` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
-| `GET /movies/{id}` | — | — | 200 `MovieResponse` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
+| **[Stage 1]** `GET /movies` | `status`, `genreId`, `search`, `page`, `limit` | — | 200 `Stage1MoviePage` | PUBLIC |
+| **[Stage 1]** `GET /movies/{id}` | — | — | 200 `Stage1MovieResponse` | PUBLIC |
 | `GET /genres` | `page`, `limit` | — | 200 `GenrePage` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
-| `GET /cinemas` | `city`, `q`, `page`, `limit` | — | 200 `CinemaPage` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
-| `GET /cinemas/{id}` | — | — | 200 `CinemaResponse` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
-| `GET /showtimes` | `movieId`, `cinemaId`, `date`, `page`, `limit` | — | 200 `ShowtimePage` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
+| **[Stage 1]** `GET /cinemas` | `city` | — | 200 `Stage1CinemaListResponse` | PUBLIC |
+| **[Stage 1]** `GET /cinemas/{id}` | — | — | 200 `Stage1CinemaResponse` | PUBLIC |
+| **[Stage 1]** `GET /showtimes` | `movieId`, `cinemaId`, `date`, `format` | — | 200 `Stage1ShowtimeListResponse` | PUBLIC |
 | `GET /showtimes/{id}` | — | — | 200 `ShowtimeResponse` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
-| `GET /showtimes/{id}/seats` | — | — | 200 `ShowtimeSeatMapResponse` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
+| **[Stage 1]** `GET /showtimes/{id}/seats` | — | — | 200 `Stage1SeatInventoryResponse` | PUBLIC; bearer tùy chọn |
 | `GET /combos` | `cinemaId`!, `page`, `limit` | — | 200 `ComboPage` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
 | `GET /vouchers` | `cinemaId`!, `page`, `limit` | — | 200 `VoucherSummaryPage` | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
 
@@ -164,21 +233,22 @@ Bảng khớp một-một với OpenAPI cho API ứng dụng. Path UUID luôn b�
 
 | Method / path | Query | Body | Thành công | Role / scope |
 |---|---|---|---|---|
-| `POST /orders` ★ | — | `CreateOrder` | 201 `OrderResponse` | CUSTOMER:OWN |
-| `GET /orders/pending` | `showtimeId` | — | 200 `PendingOrderResponse` | CUSTOMER:OWN |
-| `GET /orders/{id}` | — | — | 200 `OrderResponse` | CUSTOMER:OWN; STAFF:CINEMA; MANAGER:CINEMA; ADMIN:SYSTEM |
+| **[Stage 1]** `POST /orders` | — | `Stage1CreateOrder` | 201 `Stage1OrderResponse` | Bearer OWN |
+| **[Stage 1]** `GET /orders/pending` | `showtimeId` | — | 200 `Stage1PendingOrderResponse` | Bearer OWN |
+| **[Stage 1]** `GET /orders/{id}` | — | — | 200 `Stage1OrderResponse` | CUSTOMER:OWN; STAFF:CINEMA; MANAGER:CINEMA; ADMIN:SYSTEM |
+| **[Stage 1]** `PATCH /orders/{id}` | — | `Stage1OrderUpdate` | 200 `Stage1OrderResponse` | Bearer, chỉ chủ đơn |
 | `PUT /orders/{id}/combos` | — | `OrderCombosWrite` | 200 `OrderResponse` | CUSTOMER:OWN |
 | `POST /orders/{id}/voucher` | — | `ApplyVoucher` | 200 `OrderResponse` | CUSTOMER:OWN |
 | `DELETE /orders/{id}/voucher` | — | — | 200 `OrderResponse` | CUSTOMER:OWN |
-| `POST /orders/{id}/cancel` ★ | — | `CancelPendingRequest` | 200 `OrderResponse` | CUSTOMER:OWN |
+| **[Stage 1]** `POST /orders/{id}/cancel` | — | `Stage1CancelOrder` | 200 `Stage1CancelResponse` | OWN/CINEMA/SYSTEM |
 
 ### F04. Thanh toán
 
 | Method / path | Query | Body | Thành công | Role / scope |
 |---|---|---|---|---|
-| `POST /orders/{id}/pay` ★ | — | `PayRequest` | 200 `PayResultResponse` | CUSTOMER:OWN |
-| `GET /payment/vnpay/ipn` | `vnp_Amount`!, `vnp_TmnCode`!, `vnp_TxnRef`!, `vnp_ResponseCode`!, `vnp_TransactionStatus`!, `vnp_TransactionNo`!, `vnp_OrderInfo`!, `vnp_PayDate`!, `vnp_BankCode`, `vnp_BankTranNo`, `vnp_CardType`, `vnp_SecureHash`!, `vnp_SecureHashType` | — | 200 `VnpayAck` | VNPAY:SYSTEM |
-| `GET /payment/vnpay/return` | `vnp_Amount`!, `vnp_TmnCode`!, `vnp_TxnRef`!, `vnp_ResponseCode`!, `vnp_TransactionStatus`!, `vnp_TransactionNo`!, `vnp_OrderInfo`!, `vnp_PayDate`!, `vnp_BankCode`, `vnp_BankTranNo`, `vnp_CardType`, `vnp_SecureHash`!, `vnp_SecureHashType` | — | 303 Location | GUEST:PUBLIC; CUSTOMER:PUBLIC; STAFF:PUBLIC; MANAGER:PUBLIC; ADMIN:PUBLIC |
+| **[Stage 1]** `POST /orders/{id}/pay` | — | `Stage1PayRequest` | 200 `Stage1PayResponse` | Bearer, chỉ chủ đơn |
+| **[Stage 1]** `GET /payment/vnpay/ipn` | Query provider ký HMAC, xem mục 0.3/OpenAPI | — | 200 `VnpayAck` thô | PUBLIC, service verify |
+| **[Stage 1]** `GET /payment/vnpay/return` | Query provider ký HMAC; Accept quyết định kiểu trả | — | 302 Location hoặc 200 `Stage1VnpayReturnResponse` | PUBLIC, service verify |
 
 ### F05. Vé và email
 
@@ -347,9 +417,9 @@ Bảng khớp một-một với OpenAPI cho API ứng dụng. Path UUID luôn b�
 
 Không có API public để chạy job. Worker dùng khóa DB/leader lock và các service transaction chung với API: nhả hold mỗi phút, đóng suất mỗi 5 phút, chuyển trạng thái phim/dọn token hằng ngày, hết hạn vé mỗi giờ, nhắc lịch mỗi 15 phút nếu bật. Ghế HELD hết hạn luôn được coi là trống trong query, kể cả job chậm. Email outbox retry/backoff; lỗi email không hỏng order/vé. Jobs chạy idempotent khi nhiều instance, ghi log/metrics. Vận hành bằng tiến trình worker theo 06, không route dành cho GUEST hoặc lệnh ADMIN tùy ý.
 
-## 6. Mẫu request/response cốt lõi
+## 6. Mẫu request/response cốt lõi (thiết kế mục tiêu)
 
-UUID là dữ liệu minh họa, chưa có seed. Request protected gửi `Authorization: Bearer <accessToken>`; lệnh có ký hiệu ★ thêm `Idempotency-Key: <UUID>`. JSON dưới đây là toàn bộ body/response mẫu khớp OpenAPI. Các response lớn giữ đầy đủ schema để frontend thấy ticket, snapshot và payment.
+Các mẫu trong mục 6 giữ **thiết kế mục tiêu**, không thay thế DTO Stage1* tại mục 0; đặc biệt Order mẫu, route combo/voucher riêng, idempotency và FREE chưa phản ánh runtime. UUID là dữ liệu minh họa; không dùng làm seed hay dữ liệu đặt vé thật. Request protected gửi `Authorization: Bearer <accessToken>`; lệnh có ký hiệu ★ thêm `Idempotency-Key: <UUID>`. JSON dưới đây là body/response mẫu theo schema thiết kế cũ trong OpenAPI; operation implemented dùng schema Stage1* thay thế. Các response lớn giữ đầy đủ schema để frontend thấy ticket, snapshot và payment.
 
 ### 6.1 Login, refresh và phiên
 
@@ -865,7 +935,7 @@ Response 200:
 
 Role/assignment/revoke/audit cùng transaction. STAFF/MANAGER không tự phân quyền, `/me` không cho sửa role. Không tự khóa hoặc hạ quyền ADMIN cuối cùng.
 
-## 7. API vận hành và service ML riêng
+## 7. API vận hành và service ML riêng (thiết kế mục tiêu)
 
 | Method / URL | Query/body | Response | Security / scope |
 |---|---|---|---|
@@ -875,7 +945,7 @@ Role/assignment/revoke/audit cùng transaction. STAFF/MANAGER không tự phân 
 
 Health chỉ trả trạng thái/service, không lộ cấu hình/secret. Liveness không phụ thuộc DB; readiness kiểm DB với timeout ngắn, không chặn vì VNPay/SMTP/ML tạm thời lỗi. Service ML là mạng private, không expose qua gateway; frontend không gọi trực tiếp. `ML_SERVICE_TOKEN` từ ENV và header `X-Service-Token` là credential giữa service; snake_case user_id/movie_id giữ theo contract Python. Backend timeout 2 giây và fallback. Không gửi email/SĐT cho ML.
 
-## 8. Kiểm tra hợp đồng khi triển khai
+## 8. Kiểm tra hợp đồng khi triển khai (thiết kế mục tiêu)
 
 Import [openapi.json](openapi.json) theo [OpenAPI 3.0.3 chính thức](https://spec.openapis.org/oas/v3.0.3.html). `operationId` phải duy nhất; mọi role/scope được middleware/service thực thi. Request JSON không nhận field lạ; không dùng Prisma entity trực tiếp làm DTO để tránh mass assignment. Security trong OAS không thay backend RBAC hoặc constraint DB.
 

@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "API hệ thống đặt vé phim – Đồ án 4",
-    "version": "1.0.0-design",
-    "description": "Hợp đồng thiết kế tiếng Việt, chưa phải backend đã triển khai. Nguồn docs 01–03 và 05. UUID CHAR(36), camelCase JSON, VND nguyên, timestamp UTC. /api/v1 nằm trong servers, không lặp trong paths. Health và ML có server override riêng. F19 là worker, không có route chạy job công khai."
+    "version": "1.0.0-stage1",
+    "description": "Hợp đồng tiếng Việt gồm API Stage 1 đã đối chiếu mã nguồn và hợp đồng thiết kế rộng hơn. Operation x-implementation-status=implemented cùng schema Stage1* mô tả runtime hiện tại; design là thiết kế/chưa được xác minh trong đợt Stage 1, không phải cam kết endpoint đã hoạt động. Các schema cũ giữ cho thiết kế F01–F19. /api/v1 nằm trong servers. Xem mục 0 của docs/05-thiet-ke-api.md để biết phạm vi, khác biệt và luồng IPN/return."
   },
   "servers": [
     {
@@ -197,7 +197,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/register": {
@@ -363,7 +364,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/login": {
@@ -543,7 +545,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/refresh": {
@@ -716,7 +719,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/logout": {
@@ -854,7 +858,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/forgot-password": {
@@ -996,7 +1001,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/reset-password": {
@@ -1138,7 +1144,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/verify-email": {
@@ -1280,7 +1287,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/auth/resend-verification": {
@@ -1422,7 +1430,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/me": {
@@ -1560,7 +1569,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -1706,7 +1716,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/me/password": {
@@ -1854,7 +1865,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/me/loyalty-transactions": {
@@ -2011,7 +2023,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/media": {
@@ -2159,7 +2172,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/movies": {
@@ -2169,7 +2183,7 @@
         ],
         "operationId": "listMovies",
         "summary": "Danh sách phim công khai",
-        "description": "Chỉ phim isActive=true, ageRating khác C. NOW_SHOWING dùng cờ trạng thái và suất tương lai; COMING_SOON theo ngày phát hành. genre nhận danh sách UUID phân tách dấu phẩy.",
+        "description": "Chỉ phim isActive=true; status nhận cả COMING_SOON/NOW_SHOWING/ENDED. search tìm title/originalTitle; genreId là một UUID. Sort releaseDate DESC rồi createdAt DESC. Chỉ danh sách phim có meta phân trang.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -2188,69 +2202,41 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Danh sách phim công khai thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MoviePage"
+                  "$ref": "#/components/schemas/Stage1MoviePage"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -2262,90 +2248,27 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "enum": [
-                "NOW_SHOWING",
-                "COMING_SOON"
-              ]
+              "$ref": "#/components/schemas/MovieStatus"
             }
           },
           {
-            "name": "genre",
+            "name": "genreId",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid",
-                "minLength": 36,
-                "maxLength": 36,
-                "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
-              }
-            },
-            "description": "Một hoặc nhiều UUID thể loại; array dùng style=form, explode=false (phân tách dấu phẩy).",
-            "style": "form",
-            "explode": false
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
-            "name": "q",
+            "name": "search",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string",
               "maxLength": 255
-            }
-          },
-          {
-            "name": "cinemaId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
-            }
-          },
-          {
-            "name": "date",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date",
-              "description": "Ngày lịch Asia/Ho_Chi_Minh; không tự chuyển thành ngày UTC."
-            }
-          },
-          {
-            "name": "ageRating",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "P",
-                "K",
-                "T13",
-                "T16",
-                "T18"
-              ]
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "NEWEST",
-                "RATING",
-                "POPULAR",
-                "TITLE"
-              ]
-            }
+            },
+            "description": "Trim trước khi tìm."
           },
           {
             "name": "page",
@@ -2353,7 +2276,6 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
               "minimum": 1,
               "default": 1
             }
@@ -2364,13 +2286,14 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
               "minimum": 1,
-              "default": 10,
-              "maximum": 100
+              "maximum": 100,
+              "default": 20
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/movies/{id}": {
@@ -2380,7 +2303,7 @@
         ],
         "operationId": "getMovie",
         "summary": "Chi tiết phim công khai",
-        "description": "Phim ẩn hoặc phân loại C trả 404. Đánh giá được phân trang qua /movies/{id}/reviews.",
+        "description": "Chi tiết phim còn isActive; upcomingShowtimes tối đa 50 suất OPEN với startTime >= hiện tại. Ngày phim serialize thành ISO date-time; format suất dùng TWO_D/THREE_D/IMAX.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -2399,69 +2322,41 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Chi tiết phim công khai thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MovieResponse"
+                  "$ref": "#/components/schemas/Stage1MovieResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -2474,13 +2369,12 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/genres": {
@@ -2601,7 +2495,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/cinemas": {
@@ -2611,7 +2506,7 @@
         ],
         "operationId": "listCinemas",
         "summary": "Danh sách rạp hoạt động",
-        "description": "Danh sách rạp hoạt động",
+        "description": "Danh sách rạp ACTIVE, city lọc chính xác sau trim; sort city ASC,name ASC. Không phân trang/meta. openTime/closeTime serialize từ Prisma DateTime thành ISO timestamp.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -2630,69 +2525,41 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Danh sách rạp hoạt động thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CinemaPage"
+                  "$ref": "#/components/schemas/Stage1CinemaListResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -2706,40 +2573,10 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 255
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "default": 1
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "default": 10,
-              "maximum": 100
-            }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/cinemas/{id}": {
@@ -2749,7 +2586,7 @@
         ],
         "operationId": "getCinema",
         "summary": "Chi tiết rạp",
-        "description": "Chi tiết rạp",
+        "description": "Chi tiết rạp từ Prisma gồm status/createdAt/updatedAt và rooms ACTIVE với _count.seats; rạp được lookup theo ID, không lọc status rạp.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -2768,69 +2605,41 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Chi tiết rạp thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CinemaResponse"
+                  "$ref": "#/components/schemas/Stage1CinemaResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -2843,13 +2652,12 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/showtimes": {
@@ -2859,7 +2667,7 @@
         ],
         "operationId": "listShowtimes",
         "summary": "Suất chiếu công khai",
-        "description": "Chỉ OPEN, startTime>now và phim đang hoạt động, khác C. Suất chưa bắt đầu nhưng đã qua giờ ngừng bán vẫn có canBook=false. availableSeats lấy từ DB, kể cả HELD quá hạn; sort startTime,id ASC.",
+        "description": "Danh sách không phân trang: OPEN, startTime > hiện tại, phim isActive. date là ngày hợp lệ tại UTC+7; sort startTime ASC. format nhận TWO_D/THREE_D/IMAX và alias 2D/3D; response trả enum Prisma.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -2878,69 +2686,41 @@
         "security": [],
         "responses": {
           "200": {
-            "description": "Suất chiếu công khai thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ShowtimePage"
+                  "$ref": "#/components/schemas/Stage1ShowtimeListResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -2953,10 +2733,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           },
           {
@@ -2965,10 +2742,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           },
           {
@@ -2977,34 +2751,28 @@
             "required": false,
             "schema": {
               "type": "string",
-              "format": "date",
-              "description": "Ngày lịch Asia/Ho_Chi_Minh; không tự chuyển thành ngày UTC."
-            }
+              "format": "date"
+            },
+            "description": "Ngày Việt Nam YYYY-MM-DD; luôn loại suất đã bắt đầu."
           },
           {
-            "name": "page",
+            "name": "format",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "default": 1
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "minimum": 1,
-              "default": 10,
-              "maximum": 100
+              "type": "string",
+              "enum": [
+                "2D",
+                "3D",
+                "TWO_D",
+                "THREE_D",
+                "IMAX"
+              ]
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/showtimes/{id}": {
@@ -3114,7 +2882,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/showtimes/{id}/seats": {
@@ -3124,7 +2893,7 @@
         ],
         "operationId": "getShowtimeSeats",
         "summary": "Sơ đồ ghế theo suất",
-        "description": "Bearer tùy chọn để tính heldByMe, bearer sai trả 401. Không lộ userId/orderId của người khác. HELD hết hạn coi là AVAILABLE; Cache-Control: no-store, polling 5 giây. Giá là quote, chỉ snapshot khi tạo đơn.",
+        "description": "Inventory phẳng seats[] theo y ASC,x ASC; giá tính phía server từ rule/phụ thu. Hold hết hạn được đọc như AVAILABLE, ghế BLOCKED giá 0. Công khai; bearer hợp lệ tùy chọn cho heldByCurrentUser. Không lộ ID chủ hold hoặc orderId, không có server DTO rows[][]/capacityUnits.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -3148,79 +2917,51 @@
         ],
         "responses": {
           "200": {
-            "description": "Sơ đồ ghế theo suất thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ShowtimeSeatMapResponse"
+                  "$ref": "#/components/schemas/Stage1SeatInventoryResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "401": {
-            "description": "JWT/refresh không hợp lệ hoặc hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -3233,13 +2974,12 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/combos": {
@@ -3372,7 +3112,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/vouchers": {
@@ -3505,7 +3246,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/orders": {
@@ -3515,12 +3257,18 @@
         ],
         "operationId": "createOnlineOrder",
         "summary": "Tạo đơn và giữ ghế online",
-        "description": "Transaction giữ ghế 10 phút và snapshot giá. Giới hạn 1–8 đơn vị ghế; T13/T16/T18 cần ageConfirmed=true và kiểm ngày sinh. Pending cũ cùng khách/suất khác key trả 409 PENDING_ORDER_EXISTS với orderId. Ghế không thuộc phòng hoặc ID lặp trả 400; thiếu một ghế rollback toàn bộ và trả 409 SEAT_UNAVAILABLE.",
+        "description": "Tạo đơn và giữ 1..8 seatId ngay trong transaction; một pending còn hạn cho mỗi user+showtime. Tạo tiếp cùng suất trả 409 ACTIVE_PENDING_ORDER. Giữ ghế theo thời hạn settings (mặc định 10 phút). Có thể gửi combos/voucherCode. Idempotency-Key client có gửi nhưng backend hiện chưa đọc/lưu/replay header này. Không tự retry POST khi mất response; đọc /orders/pending để khôi phục.",
         "x-roles": [
-          "CUSTOMER"
+          "CUSTOMER",
+          "STAFF",
+          "MANAGER",
+          "ADMIN"
         ],
         "x-scope": {
-          "CUSTOMER": "OWN"
+          "CUSTOMER": "OWN",
+          "STAFF": "OWN",
+          "MANAGER": "OWN",
+          "ADMIN": "OWN"
         },
         "x-feature-priority": "MVP",
         "security": [
@@ -3530,206 +3278,99 @@
         ],
         "responses": {
           "201": {
-            "description": "Tạo đơn và giữ ghế online thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrderResponse"
-                },
-                "example": {
-                  "success": true,
-                  "data": {
-                    "id": "55555555-5555-4555-8555-555555555555",
-                    "code": "MV261003K8Q2ZA",
-                    "userId": "22222222-2222-4222-8222-222222222222",
-                    "showtimeId": "44444444-4444-4444-8444-444444444444",
-                    "cinemaId": "13131313-1313-4313-8313-131313131313",
-                    "source": "ONLINE",
-                    "status": "PENDING_PAYMENT",
-                    "refundStatus": "NONE",
-                    "snapshot": {
-                      "movieTitle": "Phim minh họa",
-                      "posterUrl": "https://media.example.com/poster.webp",
-                      "ageRating": "T16",
-                      "cinemaName": "Rạp trung tâm",
-                      "cinemaAddress": "TP. Hồ Chí Minh",
-                      "roomName": "Phòng1",
-                      "format": "2D",
-                      "language": "SUBTITLED",
-                      "startTime": "2026-10-03T17:00:00Z",
-                      "endTime": "2026-10-03T19:15:00Z"
-                    },
-                    "items": [
-                      {
-                        "seatId": "11111111-1111-4111-8111-111111111111",
-                        "seatLabel": "A5",
-                        "seatType": "VIP",
-                        "capacityUnits": 1,
-                        "price": 95000
-                      }
-                    ],
-                    "combos": [],
-                    "ticketSubtotal": 95000,
-                    "comboSubtotal": 0,
-                    "subtotal": 95000,
-                    "discount": 0,
-                    "total": 95000,
-                    "currency": "VND",
-                    "voucherCode": null,
-                    "expectedPoints": 9,
-                    "expiresAt": "2026-10-03T12:40:00Z",
-                    "createdAt": "2026-10-03T12:30:00Z",
-                    "paidAt": null,
-                    "paymentInProgress": false,
-                    "tickets": [],
-                    "payments": [],
-                    "refunds": [],
-                    "pricingLocked": false,
-                    "settledPaymentId": null
-                  },
-                  "serverTime": "2026-10-03T12:30:00Z"
+                  "$ref": "#/components/schemas/Stage1OrderResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "401": {
-            "description": "JWT/refresh không hợp lệ hoặc hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "403": {
-            "description": "Sai vai trò/phạm vi, tài khoản bị khóa hoặc CSRF bị từ chối.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "409": {
-            "description": "Xung đột trạng thái/ghế/lịch hoặc idempotency.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Có khi request cùng key đang chạy; không tự retry xung đột nghiệp vụ."
               }
             }
           },
           "410": {
-            "description": "ORDER_EXPIRED: giữ ghế hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           }
         },
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "UUID cho một ý định. Cùng actor/method/path/key/body replay kết quả 24 giờ; payload khác trả 409 IDEMPOTENCY_KEY_REUSED. Request đang chạy trả 409 IDEMPOTENCY_IN_PROGRESS và Retry-After. Kiểm quyền trước replay."
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrder"
-              },
-              "example": {
-                "showtimeId": "44444444-4444-4444-8444-444444444444",
-                "seatIds": [
-                  "11111111-1111-4111-8111-111111111111"
-                ],
-                "ageConfirmed": true
+                "$ref": "#/components/schemas/Stage1CreateOrder"
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/orders/pending": {
@@ -3739,12 +3380,18 @@
         ],
         "operationId": "getPendingOrder",
         "summary": "Khôi phục đơn đang dở",
-        "description": "Trả data=null nếu không còn đơn pending. Nếu không truyền showtimeId, trả đơn còn hạn mới nhất; có thể xem các đơn pending khác qua /me/orders?status=PENDING_PAYMENT.",
+        "description": "Trả pending còn hạn mới nhất của user, tùy chọn lọc showtimeId; data=null khi không có. Controller hiện nhận trực tiếp showtimeId, chưa validate query UUID.",
         "x-roles": [
-          "CUSTOMER"
+          "CUSTOMER",
+          "STAFF",
+          "MANAGER",
+          "ADMIN"
         ],
         "x-scope": {
-          "CUSTOMER": "OWN"
+          "CUSTOMER": "OWN",
+          "STAFF": "OWN",
+          "MANAGER": "OWN",
+          "ADMIN": "OWN"
         },
         "x-feature-priority": "MVP",
         "security": [
@@ -3754,114 +3401,81 @@
         ],
         "responses": {
           "200": {
-            "description": "Khôi phục đơn đang dở thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PendingOrderResponse"
-                },
-                "example": {
-                  "success": true,
-                  "data": null,
-                  "serverTime": "2026-10-03T12:30:00Z"
+                  "$ref": "#/components/schemas/Stage1PendingOrderResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "401": {
-            "description": "JWT/refresh không hợp lệ hoặc hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "403": {
-            "description": "Sai vai trò/phạm vi, tài khoản bị khóa hoặc CSRF bị từ chối.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "409": {
-            "description": "Xung đột trạng thái/ghế/lịch hoặc idempotency.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "410": {
-            "description": "ORDER_EXPIRED: giữ ghế hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -3874,13 +3488,12 @@
             "required": false,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/orders/{id}": {
@@ -3890,7 +3503,7 @@
         ],
         "operationId": "getOrder",
         "summary": "Chi tiết đơn theo scope",
-        "description": "CUSTOMER chỉ order.userId của mình; STAFF/MANAGER chỉ rạp trong user_cinemas; ADMIN toàn hệ thống. Object ngoài scope trả 404. QR và payment được lọc; raw callback chỉ qua /admin/orders/{id}/payment-logs.",
+        "description": "Nguồn sự thật cho polling trạng thái đơn/payment/vé sau return hoặc khôi phục hold. CUSTOMER OWN; STAFF/MANAGER CINEMA; ADMIN SYSTEM. Sai scope trả 403. Pending quá hạn đọc thành EXPIRED.",
         "x-roles": [
           "CUSTOMER",
           "STAFF",
@@ -3911,162 +3524,81 @@
         ],
         "responses": {
           "200": {
-            "description": "Chi tiết đơn theo scope thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrderResponse"
-                },
-                "example": {
-                  "success": true,
-                  "data": {
-                    "id": "55555555-5555-4555-8555-555555555555",
-                    "code": "MV261003K8Q2ZA",
-                    "userId": "22222222-2222-4222-8222-222222222222",
-                    "showtimeId": "44444444-4444-4444-8444-444444444444",
-                    "cinemaId": "13131313-1313-4313-8313-131313131313",
-                    "source": "ONLINE",
-                    "status": "PENDING_PAYMENT",
-                    "refundStatus": "NONE",
-                    "snapshot": {
-                      "movieTitle": "Phim minh họa",
-                      "posterUrl": "https://media.example.com/poster.webp",
-                      "ageRating": "T16",
-                      "cinemaName": "Rạp trung tâm",
-                      "cinemaAddress": "TP. Hồ Chí Minh",
-                      "roomName": "Phòng1",
-                      "format": "2D",
-                      "language": "SUBTITLED",
-                      "startTime": "2026-10-03T17:00:00Z",
-                      "endTime": "2026-10-03T19:15:00Z"
-                    },
-                    "items": [
-                      {
-                        "seatId": "11111111-1111-4111-8111-111111111111",
-                        "seatLabel": "A5",
-                        "seatType": "VIP",
-                        "capacityUnits": 1,
-                        "price": 95000
-                      }
-                    ],
-                    "combos": [],
-                    "ticketSubtotal": 95000,
-                    "comboSubtotal": 0,
-                    "subtotal": 95000,
-                    "discount": 0,
-                    "total": 95000,
-                    "currency": "VND",
-                    "voucherCode": null,
-                    "expectedPoints": 9,
-                    "expiresAt": "2026-10-03T12:40:00Z",
-                    "createdAt": "2026-10-03T12:30:00Z",
-                    "paidAt": null,
-                    "paymentInProgress": false,
-                    "tickets": [],
-                    "payments": [],
-                    "refunds": [],
-                    "pricingLocked": false,
-                    "settledPaymentId": null
-                  },
-                  "serverTime": "2026-10-03T12:30:00Z"
+                  "$ref": "#/components/schemas/Stage1OrderResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "401": {
-            "description": "JWT/refresh không hợp lệ hoặc hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "403": {
-            "description": "Sai vai trò/phạm vi, tài khoản bị khóa hoặc CSRF bị từ chối.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "409": {
-            "description": "Xung đột trạng thái/ghế/lịch hoặc idempotency.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "410": {
-            "description": "ORDER_EXPIRED: giữ ghế hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -4079,13 +3611,142 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
+              "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
+      },
+      "patch": {
+        "tags": [
+          "F03"
+        ],
+        "operationId": "updatePendingOrder",
+        "summary": "Sửa lựa chọn trên chính đơn giữ ghế",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Phản hồi runtime Stage 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi runtime; xem Stage1Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi runtime; xem Stage1Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi runtime; xem Stage1Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi runtime; xem Stage1Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Lỗi runtime; xem Stage1Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Lỗi runtime; xem Stage1Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1Error"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented",
+        "x-stage": 1,
+        "description": "Chỉ chủ đơn PENDING_PAYMENT còn hạn; cập nhật ghế/combo/voucher atomically trên cùng id, giữ expiresAt. Omit field giữ lựa chọn cũ; seatIds/combos là toàn bộ lựa chọn mới; voucherCode=null gỡ voucher. Chặn 409 PAYMENT_IN_PROGRESS khi có attempt PENDING; attempt FAILED/EXPIRED không khóa sửa vĩnh viễn. Ghế tranh chấp trả 409 SEAT_ALREADY_RESERVED; không POST đơn thứ hai để sửa lựa chọn.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-roles": [
+          "CUSTOMER",
+          "STAFF",
+          "MANAGER",
+          "ADMIN"
+        ],
+        "x-scope": {
+          "CUSTOMER": "OWN",
+          "STAFF": "OWN",
+          "MANAGER": "OWN",
+          "ADMIN": "OWN"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Stage1OrderUpdate"
+              }
+            }
+          }
+        }
       }
     },
     "/orders/{id}/combos": {
@@ -4241,7 +3902,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/orders/{id}/voucher": {
@@ -4397,7 +4059,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -4541,7 +4204,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/orders/{id}/cancel": {
@@ -4551,12 +4215,18 @@
         ],
         "operationId": "cancelPendingOrder",
         "summary": "Hủy đơn online chưa thanh toán",
-        "description": "Chỉ đơn online PENDING_PAYMENT; đơn đã CANCELLED trả lại kết quả cũ. Nhả ghế, release voucher và pending guard. Không hoàn nếu chưa thu tiền. IPN thành công đến sau cancel tạo refund, không phát vé.",
+        "description": "Nhả hold pending; body pendingOnly=true dùng cho UI bỏ chọn/quay lại để tránh hủy đơn vừa PAID. pendingOnly mặc định false còn cho hủy PAID theo điều kiện hiện tại và tạo yêu cầu hoàn. Response data={success:true,message}, không phải Order; muốn trạng thái mới gọi GET order. Không có replay Idempotency-Key trong backend.",
         "x-roles": [
-          "CUSTOMER"
+          "CUSTOMER",
+          "STAFF",
+          "MANAGER",
+          "ADMIN"
         ],
         "x-scope": {
-          "CUSTOMER": "OWN"
+          "CUSTOMER": "OWN",
+          "STAFF": "CINEMA",
+          "MANAGER": "CINEMA",
+          "ADMIN": "SYSTEM"
         },
         "x-feature-priority": "MVP",
         "security": [
@@ -4566,119 +4236,81 @@
         ],
         "responses": {
           "200": {
-            "description": "Hủy đơn online chưa thanh toán thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrderResponse"
+                  "$ref": "#/components/schemas/Stage1CancelResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "401": {
-            "description": "JWT/refresh không hợp lệ hoặc hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "403": {
-            "description": "Sai vai trò/phạm vi, tài khoản bị khóa hoặc CSRF bị từ chối.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "409": {
-            "description": "Xung đột trạng thái/ghế/lịch hoặc idempotency.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Có khi request cùng key đang chạy; không tự retry xung đột nghiệp vụ."
               }
             }
           },
           "410": {
-            "description": "ORDER_EXPIRED: giữ ghế hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -4691,33 +4323,22 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
               "format": "uuid"
-            },
-            "description": "UUID cho một ý định. Cùng actor/method/path/key/body replay kết quả 24 giờ; payload khác trả 409 IDEMPOTENCY_KEY_REUSED. Request đang chạy trả 409 IDEMPOTENCY_IN_PROGRESS và Retry-After. Kiểm quyền trước replay."
+            }
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CancelPendingRequest"
+                "$ref": "#/components/schemas/Stage1CancelOrder"
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/orders/{id}/pay": {
@@ -4727,12 +4348,18 @@
         ],
         "operationId": "createPaymentAttempt",
         "summary": "Khởi tạo thanh toán VNPay",
-        "description": "Đơn OWN, PENDING_PAYMENT, còn ít nhất 60 giây. Dùng tổng tiền snapshot, không định giá lại từ catalog. Attempt PENDING còn hiệu lực trả URL hiện tại; retry sau FAILED/EXPIRED tạo txnRef mới nhưng giữ amount. Attempt đầu tiên đóng băng giá vĩnh viễn. Nếu total=0, server dùng INTERNAL/FREE SUCCESS, phát vé trong cùng transaction và trả paymentUrl=null, orderStatus=PAID. pricingLocked là response dẫn xuất EXISTS Payment, không là cột DB.",
+        "description": "Chỉ chủ đơn PENDING_PAYMENT và expiresAt > hiện tại. Tổng snapshot do server lấy; mỗi lần gọi tạo attempt mới với txnRef <mãđơn>-<n>, chưa tái sử dụng URL/replay Idempotency-Key. Không kiểm tối thiểu 60 giây, chưa có nhánh INTERNAL/FREE cho total=0. paymentUrl luôn là chuỗi VNPay. Không gia hạn hold; requestExpiresAt lưu bằng expiresAt nhưng adapter chưa gửi vnp_ExpireDate.",
         "x-roles": [
-          "CUSTOMER"
+          "CUSTOMER",
+          "STAFF",
+          "MANAGER",
+          "ADMIN"
         ],
         "x-scope": {
-          "CUSTOMER": "OWN"
+          "CUSTOMER": "OWN",
+          "STAFF": "OWN",
+          "MANAGER": "OWN",
+          "ADMIN": "OWN"
         },
         "x-feature-priority": "MVP",
         "security": [
@@ -4742,140 +4369,81 @@
         ],
         "responses": {
           "200": {
-            "description": "Khởi tạo thanh toán VNPay thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PayResultResponse"
-                },
-                "example": {
-                  "success": true,
-                  "data": {
-                    "orderId": "55555555-5555-4555-8555-555555555555",
-                    "payment": {
-                      "id": "88888888-8888-4888-8888-888888888888",
-                      "orderId": "55555555-5555-4555-8555-555555555555",
-                      "provider": "VNPAY",
-                      "txnRef": "MV261003K8Q2ZA-1",
-                      "amount": 95000,
-                      "status": "PENDING",
-                      "createdAt": "2026-10-03T12:30:00Z",
-                      "paidAt": null,
-                      "method": "VNPAY"
-                    },
-                    "paymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=9500000&vnp_TxnRef=MV261003K8Q2ZA-1",
-                    "expiresAt": "2026-10-03T12:40:00Z",
-                    "orderStatus": "PENDING_PAYMENT"
-                  },
-                  "serverTime": "2026-10-03T12:30:00Z"
+                  "$ref": "#/components/schemas/Stage1PayResponse"
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
               }
             }
           },
           "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "401": {
-            "description": "JWT/refresh không hợp lệ hoặc hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "403": {
-            "description": "Sai vai trò/phạm vi, tài khoản bị khóa hoặc CSRF bị từ chối.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
           },
           "409": {
-            "description": "Xung đột trạng thái/ghế/lịch hoặc idempotency.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Có khi request cùng key đang chạy; không tự retry xung đột nghiệp vụ."
               }
             }
           },
           "410": {
-            "description": "ORDER_EXPIRED: giữ ghế hết hạn.",
+            "description": "Lỗi runtime; xem Stage1Error.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           },
           "500": {
-            "description": "Lỗi hạ tầng không mong đợi; mã INTERNAL_ERROR, không lộ stacktrace.",
+            "description": "INTERNAL_SERVER_ERROR khi lỗi ngoài dự kiến.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/Stage1Error"
                 }
               }
             }
@@ -4888,21 +4456,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "minLength": 36,
-              "maxLength": 36,
-              "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
               "format": "uuid"
-            },
-            "description": "UUID cho một ý định. Cùng actor/method/path/key/body replay kết quả 24 giờ; payload khác trả 409 IDEMPOTENCY_KEY_REUSED. Request đang chạy trả 409 IDEMPOTENCY_IN_PROGRESS và Retry-After. Kiểm quyền trước replay."
+            }
           }
         ],
         "requestBody": {
@@ -4910,15 +4465,13 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PayRequest"
-              },
-              "example": {
-                "method": "VNPAY",
-                "locale": "vn"
+                "$ref": "#/components/schemas/Stage1PayRequest"
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/orders/{id}/resend-email": {
@@ -5070,7 +4623,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/me/orders": {
@@ -5260,7 +4814,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/me/orders/{id}": {
@@ -5406,7 +4961,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/me/orders/{id}/cancellation-preview": {
@@ -5566,7 +5122,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/me/orders/{id}/cancel": {
@@ -5838,7 +5395,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/payment/vnpay/ipn": {
@@ -5848,7 +5406,7 @@
         ],
         "operationId": "vnpayIpn",
         "summary": "Nhận IPN VNPay",
-        "description": "GET ký hash provider, không JWT/CSRF. Kiểm HMAC, TmnCode, amount snapshot và txnRef của attempt. ResponseCode và TransactionStatus đều 00 mới là SUCCESS. Khóa order/payment/seats; chỉ settledPaymentId đầu tiên phát vé. Duplicate/late success theo mục 4 của tài liệu 05. Luôn HTTP 200 với RspCode/Message của provider, không error envelope.",
+        "description": "Công khai, verify HMAC-SHA512 trên scalar query, lookup txnRef và đối chiếu amount/100. ResponseCode và TransactionStatus đều 00 mới settle; callback thất bại chỉ chuyển payment PENDING thành FAILED. Luôn HTTP 200 ACK 00/01/02/04/97/99, không envelope. Chỉ hold pending còn hạn và ghế còn thuộc đơn mới PAID/phát vé; khoản thu không fulfill được thành PAID_UNFULFILLED/refund PENDING; attempt thu trùng có refund riêng và giữ PAID. Return không thực hiện settlement. Chưa kiểm TmnCode hoặc ghi PaymentLog/outbox trong service hiện tại.",
         "x-roles": [
           "VNPAY"
         ],
@@ -5856,87 +5414,15 @@
           "VNPAY": "SYSTEM"
         },
         "x-feature-priority": "MVP",
-        "security": [
-          {
-            "vnpaySignature": []
-          }
-        ],
+        "security": [],
         "responses": {
           "200": {
-            "description": "Nhận IPN VNPay thành công.",
+            "description": "Phản hồi runtime Stage 1.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VnpayAck"
-                },
-                "examples": {
-                  "confirmed": {
-                    "value": {
-                      "RspCode": "00",
-                      "Message": "Confirm Success"
-                    }
-                  },
-                  "duplicate": {
-                    "value": {
-                      "RspCode": "02",
-                      "Message": "Order already confirmed"
-                    }
-                  },
-                  "badHash": {
-                    "value": {
-                      "RspCode": "97",
-                      "Message": "Invalid Checksum"
-                    }
-                  }
                 }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "Mã đối chiếu log, không chứa thông tin cá nhân."
-              }
-            }
-          },
-          "400": {
-            "description": "Đầu vào/lỗi nghiệp vụ không hợp lệ.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Tài nguyên không tìm thấy hoặc không thuộc quyền nhìn.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "TOO_MANY_ATTEMPTS hoặc rate limit.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int64",
-                  "minimum": 1
-                },
-                "description": "Số giây trước khi thử lại."
               }
             }
           }
@@ -5947,19 +5433,16 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{1,12}$"
+              "type": "string"
             },
             "description": "Integer chuỗi, amount VND ×100; so với payments.amount snapshot."
           },
           {
             "name": "vnp_TmnCode",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "minLength": 8,
-              "maxLength": 8
+              "type": "string"
             }
           },
           {
@@ -5967,9 +5450,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 100
+              "type": "string"
             }
           },
           {
@@ -5977,8 +5458,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{2}$"
+              "type": "string"
             }
           },
           {
@@ -5986,35 +5466,31 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{2}$"
+              "type": "string"
             }
           },
           {
             "name": "vnp_TransactionNo",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{1,15}$"
+              "type": "string"
             }
           },
           {
             "name": "vnp_OrderInfo",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 255
+              "type": "string"
             }
           },
           {
             "name": "vnp_PayDate",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{14}$"
+              "type": "string"
             }
           },
           {
@@ -6022,8 +5498,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 20
+              "type": "string"
             }
           },
           {
@@ -6031,8 +5506,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 255
+              "type": "string"
             }
           },
           {
@@ -6040,8 +5514,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 20
+              "type": "string"
             }
           },
           {
@@ -6061,7 +5534,9 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/payment/vnpay/return": {
@@ -6071,7 +5546,7 @@
         ],
         "operationId": "vnpayReturn",
         "summary": "Nhận return VNPay",
-        "description": "Chỉ verify/log, không thay đổi payment/order/ghế/vé. Redirect 303 đến FRONTEND_PAYMENT_RESULT_URL được allowlist /payment/result; không đưa raw payload/hash hoặc token vào URL frontend. Chữ ký sai không tiết lộ orderId.",
+        "description": "Chỉ verify chữ ký/amount và đọc DB, không sửa order/payment/ghế/vé. Accept HTML (kể cả */* theo Express) trả redirect 302 tới FRONTEND_PAYMENT_RESULT_URL với query orderId,code,status,amount,message; Accept application/json trả envelope Stage1VnpayReturnResponse. Frontend phải polling GET /orders/{id}; không suy PAID từ query status. Chữ ký/payment/amount sai không trả orderId.",
         "x-roles": [
           "GUEST",
           "CUSTOMER",
@@ -6087,28 +5562,26 @@
           "ADMIN": "PUBLIC"
         },
         "x-feature-priority": "MVP",
-        "security": [
-          {
-            "vnpaySignature": []
-          }
-        ],
+        "security": [],
         "responses": {
-          "303": {
-            "description": "Redirect frontend; chữ ký sai dùng returnStatus=INVALID_SIGNATURE và không tiết lộ orderId. Người dùng login nếu cần, poll GET /orders/{id}.",
+          "200": {
+            "description": "Phản hồi runtime Stage 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stage1VnpayReturnResponse"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect browser tới /payment/result; trạng thái query chỉ là gợi ý, GET order mới là nguồn sự thật.",
             "headers": {
               "Location": {
-                "required": true,
                 "schema": {
                   "type": "string",
-                  "format": "uri",
-                  "maxLength": 2048
+                  "format": "uri"
                 }
-              },
-              "Cache-Control": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "no-store"
               }
             }
           }
@@ -6119,19 +5592,16 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{1,12}$"
+              "type": "string"
             },
             "description": "Integer chuỗi, amount VND ×100; so với payments.amount snapshot."
           },
           {
             "name": "vnp_TmnCode",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "minLength": 8,
-              "maxLength": 8
+              "type": "string"
             }
           },
           {
@@ -6139,9 +5609,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 100
+              "type": "string"
             }
           },
           {
@@ -6149,8 +5617,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{2}$"
+              "type": "string"
             }
           },
           {
@@ -6158,35 +5625,31 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{2}$"
+              "type": "string"
             }
           },
           {
             "name": "vnp_TransactionNo",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{1,15}$"
+              "type": "string"
             }
           },
           {
             "name": "vnp_OrderInfo",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 255
+              "type": "string"
             }
           },
           {
             "name": "vnp_PayDate",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "string",
-              "pattern": "^\\d{14}$"
+              "type": "string"
             }
           },
           {
@@ -6194,8 +5657,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 20
+              "type": "string"
             }
           },
           {
@@ -6203,8 +5665,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 255
+              "type": "string"
             }
           },
           {
@@ -6212,8 +5673,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "maxLength": 20
+              "type": "string"
             }
           },
           {
@@ -6233,7 +5693,9 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented",
+        "x-stage": 1
       }
     },
     "/counter/dashboard": {
@@ -6392,7 +5854,8 @@
               "description": "Ngày lịch Asia/Ho_Chi_Minh; không tự chuyển thành ngày UTC."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/counter/orders": {
@@ -6593,7 +6056,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -6818,7 +6282,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/counter/orders/{id}/combos": {
@@ -6976,7 +6441,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/counter/orders/{id}/voucher": {
@@ -7134,7 +6600,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -7280,7 +6747,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/counter/orders/{id}/confirm-payment": {
@@ -7543,7 +7011,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/counter/orders/{id}/print": {
@@ -7691,7 +7160,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/checkin": {
@@ -7901,7 +7371,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/checkin/stats": {
@@ -8049,7 +7520,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/checkin/history": {
@@ -8233,7 +7705,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/movies": {
@@ -8430,7 +7903,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -8572,7 +8046,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/movies/{id}": {
@@ -8720,7 +8195,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "patch": {
         "tags": [
@@ -8876,7 +8352,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -9015,7 +8492,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/genres": {
@@ -9174,7 +8652,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -9316,7 +8795,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/genres/{id}": {
@@ -9474,7 +8954,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -9613,7 +9094,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/cinemas": {
@@ -9793,7 +9275,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -9933,7 +9416,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/cinemas/{id}": {
@@ -10081,7 +9565,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -10237,7 +9722,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -10376,7 +9862,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/cinemas/{id}/staff": {
@@ -10547,7 +10034,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/rooms": {
@@ -10731,7 +10219,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -10873,7 +10362,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/rooms/{id}": {
@@ -11021,7 +10511,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -11177,7 +10668,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -11316,7 +10808,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/rooms/{id}/seat-map": {
@@ -11464,7 +10957,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -11620,7 +11114,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/showtimes": {
@@ -11854,7 +11349,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -12028,7 +11524,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/showtimes/{id}": {
@@ -12176,7 +11673,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -12332,7 +11830,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -12471,7 +11970,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/showtimes/{id}/cancellation-preview": {
@@ -12619,7 +12119,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/showtimes/{id}/cancel": {
@@ -12797,7 +12298,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/showtimes/bulk-preview": {
@@ -12941,7 +12443,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/showtimes/bulk": {
@@ -13107,7 +12610,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/pricing": {
@@ -13266,7 +12770,8 @@
               "description": "Ngày lịch Asia/Ho_Chi_Minh; không tự chuyển thành ngày UTC."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -13408,7 +12913,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/holidays": {
@@ -13578,7 +13084,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -13720,7 +13227,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/holidays/{id}": {
@@ -13861,7 +13369,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/vouchers": {
@@ -14054,7 +13563,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -14196,7 +13706,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/vouchers/{id}": {
@@ -14344,7 +13855,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "patch": {
         "tags": [
@@ -14500,7 +14012,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -14639,7 +14152,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/vouchers/{id}/redemptions": {
@@ -14823,7 +14337,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/combos": {
@@ -15011,7 +14526,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -15153,7 +14669,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/combos/{id}": {
@@ -15301,7 +14818,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "patch": {
         "tags": [
@@ -15457,7 +14975,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "delete": {
         "tags": [
@@ -15596,7 +15115,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/orders": {
@@ -15825,7 +15345,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/orders/{id}/payment-logs": {
@@ -15996,7 +15517,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/orders/{id}/cancellation-preview": {
@@ -16144,7 +15666,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/orders/{id}/cancel": {
@@ -16322,7 +15845,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/refunds": {
@@ -16550,7 +16074,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/refunds/{id}/confirm": {
@@ -16751,7 +16276,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/dashboard": {
@@ -16900,7 +16426,8 @@
             },
             "description": "STAFF/MANAGER chỉ rạp trong user_cinemas; bỏ filter vẫn chỉ trả các rạp được gán. ADMIN bỏ filter xem tất cả nếu operation cho phép ADMIN."
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/reports/overview": {
@@ -17081,7 +16608,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/reports": {
@@ -17278,7 +16806,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/reports/export": {
@@ -17493,7 +17022,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/users": {
@@ -17693,7 +17223,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "post": {
         "tags": [
@@ -17833,7 +17364,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/users/{id}": {
@@ -17979,7 +17511,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       },
       "patch": {
         "tags": [
@@ -18133,7 +17666,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/users/{id}/role": {
@@ -18318,7 +17852,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/users/{id}/cinemas": {
@@ -18474,7 +18009,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/users/{id}/status": {
@@ -18630,7 +18166,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/users/{id}/orders": {
@@ -18799,7 +18336,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/users/{id}/loyalty-transactions": {
@@ -18968,7 +18506,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/settings": {
@@ -19100,7 +18639,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       },
       "put": {
         "tags": [
@@ -19240,7 +18780,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/audit-logs": {
@@ -19455,7 +18996,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/audit-logs/{id}": {
@@ -19601,7 +19143,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/me/recommendations": {
@@ -19747,7 +19290,8 @@
               "maximum": 20
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/movies/{id}/reviews": {
@@ -19880,7 +19424,8 @@
               "description": "UUID v4; MySQL CHAR(36), không dùng mã đơn/mã vé làm khóa."
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/me/reviews": {
@@ -20049,7 +19594,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/movies/{id}/review": {
@@ -20205,7 +19751,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/admin/reviews": {
@@ -20384,7 +19931,8 @@
               "maximum": 100
             }
           }
-        ]
+        ],
+        "x-implementation-status": "design"
       }
     },
     "/admin/reviews/{id}": {
@@ -20542,7 +20090,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/counter/customers": {
@@ -20642,7 +20191,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/health/live": {
@@ -20692,7 +20242,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/health/ready": {
@@ -20756,7 +20307,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     },
     "/recommend": {
@@ -20841,7 +20393,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "design"
       }
     }
   },
@@ -27230,11 +26783,1778 @@
         "required": [
           "items"
         ]
+      },
+      "Stage1RoomFormat": {
+        "type": "string",
+        "enum": [
+          "TWO_D",
+          "THREE_D",
+          "IMAX"
+        ],
+        "description": "Giá trị response Prisma hiện tại. Query /showtimes còn nhận alias 2D và 3D.",
+        "x-implementation-status": "implemented"
+      },
+      "Stage1Genre": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1Movie": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "originalTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "posterUrl": {
+            "type": "string"
+          },
+          "bannerUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "trailerUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "durationMin": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ageRating": {
+            "$ref": "#/components/schemas/AgeRating"
+          },
+          "releaseDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "director": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MovieStatus"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1Genre"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "originalTitle",
+          "posterUrl",
+          "bannerUrl",
+          "trailerUrl",
+          "description",
+          "durationMin",
+          "ageRating",
+          "releaseDate",
+          "endDate",
+          "director",
+          "status",
+          "genres"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CinemaSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "openTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closeTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "roomCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "city",
+          "phone",
+          "openTime",
+          "closeTime",
+          "roomCount"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1MovieDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "originalTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "posterUrl": {
+            "type": "string"
+          },
+          "bannerUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "trailerUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "durationMin": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ageRating": {
+            "$ref": "#/components/schemas/AgeRating"
+          },
+          "releaseDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "director": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/MovieStatus"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1Genre"
+            }
+          },
+          "cast": {
+            "nullable": true,
+            "description": "JSON cast trong DB, có thể null."
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "upcomingShowtimes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "startTime": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "endTime": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "format": {
+                  "$ref": "#/components/schemas/Stage1RoomFormat"
+                },
+                "language": {
+                  "type": "string",
+                  "enum": [
+                    "SUBTITLED",
+                    "DUBBED"
+                  ]
+                },
+                "room": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "cinema": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "city",
+                        "address"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "cinema"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "startTime",
+                "endTime",
+                "format",
+                "language",
+                "room"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "originalTitle",
+          "posterUrl",
+          "bannerUrl",
+          "trailerUrl",
+          "description",
+          "durationMin",
+          "ageRating",
+          "releaseDate",
+          "endDate",
+          "director",
+          "status",
+          "genres",
+          "cast",
+          "language",
+          "country",
+          "upcomingShowtimes"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CinemaDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "openTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closeTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rooms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "format": {
+                  "$ref": "#/components/schemas/Stage1RoomFormat"
+                },
+                "rowCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "columnCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "_count": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "seats": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "seats"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "format",
+                "rowCount",
+                "columnCount",
+                "_count"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "city",
+          "phone",
+          "openTime",
+          "closeTime",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "rooms"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1Showtime": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "movieId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "movieTitle": {
+            "type": "string"
+          },
+          "movieAgeRating": {
+            "$ref": "#/components/schemas/AgeRating"
+          },
+          "movieDurationMin": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "moviePosterUrl": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roomName": {
+            "type": "string"
+          },
+          "cinemaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cinemaName": {
+            "type": "string"
+          },
+          "cinemaCity": {
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/Stage1RoomFormat"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "SUBTITLED",
+              "DUBBED"
+            ]
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShowtimeStatus"
+          }
+        },
+        "required": [
+          "id",
+          "movieId",
+          "movieTitle",
+          "movieAgeRating",
+          "movieDurationMin",
+          "moviePosterUrl",
+          "roomId",
+          "roomName",
+          "cinemaId",
+          "cinemaName",
+          "cinemaCity",
+          "format",
+          "language",
+          "startTime",
+          "endTime",
+          "status"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1Seat": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seatId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rowLabel": {
+            "type": "string"
+          },
+          "seatNumber": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "seatType": {
+            "$ref": "#/components/schemas/SeatType"
+          },
+          "x": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "columnSpan": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/SeatStatus"
+          },
+          "heldByCurrentUser": {
+            "type": "boolean"
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "seatId",
+          "rowLabel",
+          "seatNumber",
+          "seatType",
+          "x",
+          "y",
+          "columnSpan",
+          "status",
+          "heldByCurrentUser",
+          "price"
+        ],
+        "x-implementation-status": "implemented",
+        "description": "id là showtime-seat ID; seatId là seat UUID gửi lên đơn. Không trả owner ID/orderId/holdExpiresAt. heldByCurrentUser luôn có boolean và chỉ true cho hold còn hạn của tài khoản bearer hiện tại."
+      },
+      "Stage1SeatInventory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "showtime": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "startTime": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endTime": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "format": {
+                "$ref": "#/components/schemas/Stage1RoomFormat"
+              },
+              "language": {
+                "type": "string",
+                "enum": [
+                  "SUBTITLED",
+                  "DUBBED"
+                ]
+              },
+              "basePrice": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "startTime",
+              "endTime",
+              "format",
+              "language",
+              "basePrice"
+            ]
+          },
+          "movie": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "originalTitle": {
+                "type": "string",
+                "nullable": true
+              },
+              "posterUrl": {
+                "type": "string"
+              },
+              "durationMin": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ageRating": {
+                "$ref": "#/components/schemas/AgeRating"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "originalTitle",
+              "posterUrl",
+              "durationMin",
+              "ageRating"
+            ]
+          },
+          "cinema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "city",
+              "address"
+            ]
+          },
+          "room": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "rowCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "columnCount": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "rowCount",
+              "columnCount"
+            ]
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1Seat"
+            }
+          }
+        },
+        "required": [
+          "showtime",
+          "movie",
+          "cinema",
+          "room",
+          "seats"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1Ticket": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ticketCode": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TicketStatus"
+          },
+          "checkedInAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "ticketCode",
+          "status",
+          "checkedInAt"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1OrderItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seatId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seatLabel": {
+            "type": "string"
+          },
+          "seatType": {
+            "$ref": "#/components/schemas/SeatType"
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ticket": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Stage1Ticket"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "seatId",
+          "seatLabel",
+          "seatType",
+          "price",
+          "ticket"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1OrderCombo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comboId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unitPrice": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lineTotal": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "comboId",
+          "name",
+          "quantity",
+          "unitPrice",
+          "lineTotal"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1OrderPayment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "VNPAY",
+              "MOMO",
+              "COUNTER",
+              "INTERNAL"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "VNPAY",
+              "MOMO",
+              "CASH",
+              "BANK_TRANSFER",
+              "CARD",
+              "FREE"
+            ]
+          },
+          "txnRef": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "paymentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "method",
+          "txnRef",
+          "amount",
+          "status",
+          "paymentUrl",
+          "paidAt"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1OrderSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "movieTitle": {
+            "type": "string"
+          },
+          "posterUrl": {
+            "type": "string"
+          },
+          "ageRating": {
+            "$ref": "#/components/schemas/AgeRating"
+          },
+          "cinemaName": {
+            "type": "string"
+          },
+          "cinemaAddress": {
+            "type": "string"
+          },
+          "roomName": {
+            "type": "string"
+          },
+          "format": {
+            "$ref": "#/components/schemas/Stage1RoomFormat"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "SUBTITLED",
+              "DUBBED"
+            ]
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "movieTitle",
+          "posterUrl",
+          "ageRating",
+          "cinemaName",
+          "cinemaAddress",
+          "roomName",
+          "format",
+          "language",
+          "startTime",
+          "endTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1Order": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "showtimeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cinemaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "COUNTER"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "refundStatus": {
+            "$ref": "#/components/schemas/RefundStatus"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/Stage1OrderSnapshot"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1OrderItem"
+            }
+          },
+          "combos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1OrderCombo"
+            }
+          },
+          "voucher": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "discount": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "code",
+              "name",
+              "discount"
+            ],
+            "nullable": true
+          },
+          "ticketSubtotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "comboSubtotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "subtotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "discount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "VND"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1OrderPayment"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "userId",
+          "showtimeId",
+          "cinemaId",
+          "source",
+          "status",
+          "refundStatus",
+          "customerName",
+          "customerPhone",
+          "snapshot",
+          "items",
+          "combos",
+          "voucher",
+          "ticketSubtotal",
+          "comboSubtotal",
+          "subtotal",
+          "discount",
+          "total",
+          "currency",
+          "expiresAt",
+          "createdAt",
+          "paidAt",
+          "cancelledAt",
+          "cancellationReason",
+          "payments"
+        ],
+        "x-implementation-status": "implemented",
+        "description": "DTO getOrderById dùng chung create/detail/pending/PATCH. Vé nằm trong items[].ticket, không có tickets[] cấp đơn, pricingLocked, paymentInProgress, expectedPoints, settledPaymentId hoặc refunds. status của pending quá expiresAt được đọc thành EXPIRED ngay cả khi worker chưa cập nhật DB. posterUrl và endTime lấy từ catalog/suất hiện tại."
+      },
+      "Stage1ComboQuantity": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "comboId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "comboId",
+          "quantity"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CreateOrder": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "showtimeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seatIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "ageConfirmed": {
+            "type": "boolean",
+            "default": false
+          },
+          "combos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1ComboQuantity"
+            },
+            "default": []
+          },
+          "voucherCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "showtimeId",
+          "seatIds"
+        ],
+        "description": "Zod loại bỏ field lạ. combos/voucher có thể gửi ngay lúc giữ ghế; không gửi giá/tổng tiền. voucherCode được trim.",
+        "x-implementation-status": "implemented"
+      },
+      "Stage1OrderUpdate": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "seatIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "uniqueItems": true
+          },
+          "ageConfirmed": {
+            "type": "boolean"
+          },
+          "combos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1ComboQuantity"
+            }
+          },
+          "voucherCode": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "seatIds"
+            ]
+          },
+          {
+            "required": [
+              "ageConfirmed"
+            ]
+          },
+          {
+            "required": [
+              "combos"
+            ]
+          },
+          {
+            "required": [
+              "voucherCode"
+            ]
+          }
+        ],
+        "description": "Ít nhất một field đã biết. seatIds/combos thay toàn bộ lựa chọn; combos=[] xóa combo; voucherCode=null gỡ voucher. Không lặp comboId. Field lạ bị loại bỏ; giữ id và expiresAt. Chặn khi có Payment PENDING, không khóa vĩnh viễn mọi attempt cũ.",
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CancelOrder": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "pendingOnly": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "reason được trim; pendingOnly=true bảo vệ lệnh nhả hold khỏi hủy đơn vừa PAID. Body có thể bỏ trống.",
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CancelResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1PayRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "VNPAY"
+            ],
+            "default": "VNPAY"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "vn",
+              "en"
+            ],
+            "default": "vn"
+          }
+        },
+        "x-implementation-status": "implemented"
+      },
+      "Stage1PayResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payment": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "VNPAY"
+                ]
+              },
+              "txnRef": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "status": {
+                "$ref": "#/components/schemas/PaymentStatus"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "paidAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "VNPAY"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "orderId",
+              "provider",
+              "txnRef",
+              "amount",
+              "status",
+              "createdAt",
+              "paidAt",
+              "method"
+            ]
+          },
+          "paymentUrl": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "orderStatus": {
+            "$ref": "#/components/schemas/OrderStatus"
+          }
+        },
+        "required": [
+          "orderId",
+          "payment",
+          "paymentUrl",
+          "expiresAt",
+          "orderStatus"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1VnpayReturn": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "PENDING",
+              "FAILED"
+            ]
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "txnRef": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "responseCode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "x-implementation-status": "implemented",
+        "description": "Return chỉ đọc kết quả từ DB, không fulfill. Khi chữ ký/payment/amount không hợp lệ: success=false, code=INVALID_SIGNATURE/PAYMENT_NOT_FOUND/INVALID_AMOUNT, message; không có orderId. Khi hợp lệ: code là mã đơn; SUCCESS cần callback báo 00/00, payment SUCCESS và order PAID; pending dùng PENDING."
+      },
+      "Stage1Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "details"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "error"
+        ],
+        "x-implementation-status": "implemented",
+        "description": "Mã lỗi runtime là chuỗi, khác enum thiết kế Error. Ví dụ ACTIVE_PENDING_ORDER, SEAT_ALREADY_RESERVED, PAYMENT_IN_PROGRESS, ORDER_NOT_PENDING, ORDER_ALREADY_PAID, INVALID_ORDER_STATUS, INTERNAL_SERVER_ERROR."
+      },
+      "Stage1MoviePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1Movie"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1MovieResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1MovieDetail"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CinemaListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1CinemaSummary"
+            }
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CinemaResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1CinemaDetail"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1ShowtimeListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stage1Showtime"
+            }
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1SeatInventoryResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1SeatInventory"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1OrderResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1Order"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1PendingOrderResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Stage1Order"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1CancelResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1CancelResult"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1PayResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1PayResult"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
+      },
+      "Stage1VnpayReturnResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/Stage1VnpayReturn"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "serverTime"
+        ],
+        "x-implementation-status": "implemented"
       }
     }
   },
   "externalDocs": {
     "description": "Tài liệu thiết kế và quy tắc API",
     "url": "https://spec.openapis.org/oas/v3.0.3.html"
+  },
+  "x-implementation-status-values": {
+    "implemented": "Route/DTO đã đối chiếu mã nguồn Stage 1; không có nghĩa đã đạt toàn bộ chính sách thiết kế hoặc sẵn sàng production.",
+    "design": "Hợp đồng thiết kế được giữ lại; chưa xác minh việc triển khai trong phạm vi Stage 1 này."
   }
 }

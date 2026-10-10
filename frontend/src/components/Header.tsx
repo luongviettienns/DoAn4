@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Film, MapPin, Search, User, Menu, X, LogOut, Award, Ticket, QrCode } from 'lucide-react';
+import { Film, MapPin, Search, User, Menu, X, LogOut, Award, Ticket, QrCode, BarChart2, Clapperboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   onOpenMyTickets?: () => void;
   onOpenStaffCheckin?: () => void;
+  onOpenReport?: () => void;
+  onOpenProfile?: () => void;
+  onOpenAdmin?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffCheckin }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenMyTickets,
+  onOpenStaffCheckin,
+  onOpenReport,
+  onOpenProfile,
+  onOpenAdmin,
+}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, openAuthModal, logout } = useAuth();
@@ -53,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
             Phim
           </a>
           <a
-            href="#cinemas"
+            href="#movies"
             className="text-sm font-medium text-[#A39E96] hover:text-[#FFB23E] transition-colors py-2"
           >
             Rạp
@@ -81,24 +90,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
         {/* Right Action Cluster */}
         <div className="hidden sm:flex items-center gap-4">
           {/* Location Picker */}
-          <button
-            type="button"
+          <a
+            href="#movies"
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-[#F3EEE6] bg-[#151318]/80 hover:bg-[#221F28] border border-[#2A2631] transition-all min-h-[44px]"
-            aria-label="Chọn cụm rạp tại thành phố"
+            aria-label="Chọn rạp"
           >
             <MapPin className="w-4 h-4 text-[#FFB23E]" />
-            <span>Hà Nội</span>
-            <span className="text-[10px] text-[#A39E96]">▾</span>
-          </button>
+            <span>Chọn rạp</span>
+          </a>
 
           {/* Search Trigger */}
-          <button
-            type="button"
+          <a
+            href="#discovery-search"
             className="p-2.5 rounded-lg text-[#A39E96] hover:text-[#F3EEE6] hover:bg-[#151318] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Tìm kiếm phim, rạp hoặc diễn viên"
+            aria-label="Tìm kiếm phim"
           >
             <Search className="w-5 h-5" />
-          </button>
+          </a>
 
           {/* User Account / Login State */}
           {user ? (
@@ -115,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
               </button>
 
               {/* Staff Check-in Trigger (F08) */}
-              {(user.role === 'STAFF' || user.role === 'MANAGER' || user.role === 'ADMIN') && (
+              {(user.role === 'STAFF' || user.role === 'MANAGER') && (
                 <button
                   type="button"
                   onClick={() => onOpenStaffCheckin?.()}
@@ -127,7 +135,39 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
                 </button>
               )}
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151318] border border-[#2A2631] text-xs">
+              {/* Admin Report Trigger (F14) */}
+              {(user.role === 'MANAGER' || user.role === 'ADMIN') && (
+                <button
+                  type="button"
+                  onClick={() => onOpenReport?.()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-all min-h-[44px]"
+                  title="Báo cáo & Thống kê doanh thu"
+                >
+                  <BarChart2 className="w-4 h-4" />
+                  <span>Báo cáo</span>
+                </button>
+              )}
+
+              {/* Admin Management Trigger (F09 · F10 · F11 · F13) */}
+              {(user.role === 'MANAGER' || user.role === 'ADMIN') && (
+                <button
+                  type="button"
+                  onClick={() => onOpenAdmin?.()}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all min-h-[44px]"
+                  title="Quản lý phim, phòng chiếu, suất chiếu & ưu đãi"
+                >
+                  <Clapperboard className="w-4 h-4" />
+                  <span>Quản trị</span>
+                </button>
+              )}
+
+              {/* User Profile Trigger */}
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.()}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151318] hover:bg-[#221F28] border border-[#2A2631] text-xs transition-colors cursor-pointer text-left"
+                title="Hồ sơ tài khoản & Đổi mật khẩu"
+              >
                 <div className="w-7 h-7 rounded-full bg-[#FFB23E]/20 text-[#FFB23E] font-bold flex items-center justify-center text-xs">
                   {user.fullName[0]}
                 </div>
@@ -138,7 +178,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
                     {user.points} điểm
                   </span>
                 </div>
-              </div>
+              </button>
+
               <button
                 type="button"
                 onClick={logout}
@@ -186,7 +227,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
               Phim
             </a>
             <a
-              href="#cinemas"
+              href="#movies"
               onClick={() => setMobileMenuOpen(false)}
               className="text-base font-medium text-[#A39E96] py-2"
             >
@@ -209,18 +250,70 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMyTickets, onOpenStaffChec
           </nav>
           <div className="pt-4 border-t border-[#2A2631] flex flex-col gap-3">
             {user ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-[#F3EEE6]">{user.fullName}</div>
-                  <div className="text-xs text-[#FFB23E]">{user.points} điểm tích lũy</div>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); onOpenProfile?.(); }}
+                    className="flex items-center gap-2 text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#FFB23E]/20 text-[#FFB23E] font-bold flex items-center justify-center text-xs">
+                      {user.fullName[0]}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-[#F3EEE6] hover:text-[#FFB23E] transition-colors">{user.fullName}</div>
+                      <div className="text-xs text-[#FFB23E]">{user.points} điểm tích lũy</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="px-3 py-1.5 rounded bg-red-950/40 text-red-300 text-xs border border-red-800/60"
+                  >
+                    Đăng xuất
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="px-3 py-1.5 rounded bg-red-950/40 text-red-300 text-xs border border-red-800/60"
-                >
-                  Đăng xuất
-                </button>
+                {/* Mobile action buttons */}
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-[#2A2631]">
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); onOpenMyTickets?.(); }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-[#FFB23E] bg-[#FFB23E]/10 border border-[#FFB23E]/30"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    <span>Vé của tôi</span>
+                  </button>
+                  {(user.role === 'STAFF' || user.role === 'MANAGER') && (
+                    <button
+                      type="button"
+                      onClick={() => { setMobileMenuOpen(false); onOpenStaffCheckin?.(); }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      <span>Soát vé</span>
+                    </button>
+                  )}
+                  {(user.role === 'MANAGER' || user.role === 'ADMIN') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { setMobileMenuOpen(false); onOpenReport?.(); }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/30"
+                      >
+                        <BarChart2 className="w-4 h-4" />
+                        <span>Báo cáo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setMobileMenuOpen(false); onOpenAdmin?.(); }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30"
+                      >
+                        <Clapperboard className="w-4 h-4" />
+                        <span>Quản trị</span>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             ) : (
               <button

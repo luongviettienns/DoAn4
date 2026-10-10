@@ -1,6 +1,8 @@
 import prisma from '../../shared/prisma';
 import { NotFoundError } from '../../shared/errors';
 import { ListCinemasQuery, CreateCinemaInput, CreateRoomInput } from './cinema.schema';
+import { AuthUser } from '../../middleware/auth.middleware';
+import { assertCinemaScope } from '../../shared/cinema-scope';
 
 export class CinemaService {
   async listCinemas(query: ListCinemasQuery) {
@@ -105,7 +107,12 @@ export class CinemaService {
     });
   }
 
-  async createRoom(input: CreateRoomInput) {
+  async createRoom(input: CreateRoomInput, actor?: Pick<AuthUser, 'role' | 'cinemaIds'>) {
+    if (actor) {
+      assertCinemaScope(actor, input.cinemaId, 'tạo phòng chiếu');
+    }
+    const cinema = await prisma.cinema.findUnique({ where: { id: input.cinemaId }, select: { id: true } });
+    if (!cinema) throw new NotFoundError('CINEMA_NOT_FOUND', 'Cụm rạp không tồn tại');
     return prisma.room.create({
       data: {
         cinemaId: input.cinemaId,

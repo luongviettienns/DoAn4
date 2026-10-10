@@ -1,18 +1,40 @@
 import { Request, Response, NextFunction } from 'express';
 import { orderService } from './order.service';
 import { paymentService } from '../payments/payment.service';
-import { createOrderSchema, payOrderSchema } from './order.schema';
+import { createOrderSchema, updateOrderSchema, counterOrderSchema, payOrderSchema, cancelOrderSchema } from './order.schema';
 import { sendSuccess } from '../../shared/response';
 
 export class OrderController {
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = updateOrderSchema.parse(req.body);
+      const order = await orderService.updatePendingOrder(req.params.id as string, req.user!.id, input);
+      return sendSuccess(res, order);
+    } catch (error) { next(error); }
+  }
+
   /**
-   * POST /api/v1/orders - Tạo đơn đặt vé và giữ ghế
+   * POST /api/v1/orders - Tạo đơn đặt vé và giữ ghế trực tuyến
    */
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const input = createOrderSchema.parse(req.body);
       const userId = req.user!.id;
       const order = await orderService.createOrder(userId, input);
+      return sendSuccess(res, order, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/v1/orders/counter - Bán vé trực tiếp tại quầy (F07)
+   */
+  async createCounter(req: Request, res: Response, next: NextFunction) {
+    try {
+      const input = counterOrderSchema.parse(req.body);
+      const staffUserId = req.user!.id;
+      const order = await orderService.createCounterOrder(staffUserId, input);
       return sendSuccess(res, order, 201);
     } catch (error) {
       next(error);
@@ -66,14 +88,15 @@ export class OrderController {
   }
 
   /**
-   * POST /api/v1/orders/:id/cancel - Hủy đơn hàng và giải phóng ghế
+   * POST /api/v1/orders/:id/cancel - Hủy / hoàn tiền đơn hàng (F03, F16)
    */
   async cancel(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.params.id as string;
       const userId = req.user!.id;
-      const reason = req.body?.reason;
-      const result = await orderService.cancelOrder(id, userId, reason);
+      const role = req.user?.role;
+      const parsed = cancelOrderSchema.parse(req.body || {});
+      const result = await orderService.cancelOrder(id, userId, role, parsed.reason, parsed.pendingOnly);
       return sendSuccess(res, result);
     } catch (error) {
       next(error);

@@ -11,6 +11,17 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend"
+    "build:backend": "npm run build --workspace=backend",
+    "test": "npm run test --workspaces",
+    "test:coverage": "npm run test:coverage --workspaces",
+    "test:e2e": "node backend/scripts/stage1-browser-e2e.cjs",
+    "seed:tmdb": "npm run seed:tmdb --workspace=backend"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "effect": "3.20.0"
   }
 }

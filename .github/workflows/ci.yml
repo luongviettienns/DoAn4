@@ -1,0 +1,62 @@
+name: Core verification
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test-password
+          MYSQL_DATABASE: cinema_booking_ci_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      TEST_DATABASE_URL: mysql://root:test-password@127.0.0.1:3306/cinema_booking_ci_test
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters
+      VNPAY_HASH_SECRET: ci-only-gateway-secret
+      VNPAY_TMN_CODE: CI_SANDBOX
+      STAGE1_E2E_ARTIFACT_DIR: artifacts/stage1-e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm exec --workspace=backend -- prisma generate
+      - run: npm run build:backend
+      - run: npm run build:frontend
+      - run: npm run lint --workspace=frontend
+      - run: npm run test:coverage
+      - name: Install Chromium and Linux browser dependencies
+        run: npm exec -- playwright install --with-deps chromium
+      - name: Verify the core customer journey in Chromium
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-coverage
+          path: |
+            backend/coverage/
+            frontend/coverage/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage1-browser-e2e
+          path: artifacts/stage1-e2e/
+          if-no-files-found: ignore
+          retention-days: 14

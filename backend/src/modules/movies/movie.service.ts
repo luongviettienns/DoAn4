@@ -3,6 +3,8 @@ import prisma from '../../shared/prisma';
 import { NotFoundError } from '../../shared/errors';
 import { ListMoviesQuery, CreateMovieInput, UpdateMovieInput } from './movie.schema';
 
+import { cancelSingleShowtimeTx } from '../showtimes/showtime.service';
+
 export class MovieService {
   async listMovies(query: ListMoviesQuery) {
     const { status, genreId, search, page, limit } = query;
@@ -201,19 +203,58 @@ export class MovieService {
     return movie;
   }
 
-  async deleteMovie(id: string) {
+  async deleteMovie(id: string, actorId?: string) {
     const existing = await prisma.movie.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundError('MOVIE_NOT_FOUND', 'Phim không tồn tại');
     }
 
-    // Soft delete according to BR-13
-    await prisma.movie.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    const now = new Date();
 
-    return { success: true };
+    return prisma.$transaction(async (tx) => {
+      // 1. Cập nhật trạng thái phim thành isActive: false, status: ENDED theo BR-13
+      const updatedMovie = await tx.movie.update({
+        where: { id },
+        data: {
+          isActive: false,
+          status: 'ENDED',
+        },
+      });
+
+      // 2. Tìm tất cả các suất chiếu tương lai của phim chưa bị hủy
+      const futureShowtimes = await tx.showtime.findMany({
+        where: {
+          movieId: id,
+          startTime: { gt: now },
+          status: { not: 'CANCELLED' },
+        },
+      });
+
+      // 3. Hủy từng suất chiếu, giải phóng ghế, hủy vé và tạo yêu cầu hoàn tiền 100%
+      for (const st of futureShowtimes) {
+        await cancelSingleShowtimeTx(tx, st, 'Phim ngừng chiếu (Quy tắc BR-13)', actorId);
+      }
+
+      // 4. Ghi AuditLog
+      await tx.auditLog.create({
+        data: {
+          actorId: actorId || null,
+          action: 'MOVIE_DEACTIVATE_BR13',
+          entity: 'Movie',
+          entityId: id,
+          oldValue: { isActive: existing.isActive, status: existing.status },
+          newValue: { isActive: false, status: 'ENDED' },
+        },
+      });
+
+      return { success: true, movie: updatedMovie };
+    }, { timeout: 25_000 });
+  }
+
+  async listGenres() {
+    return prisma.genre.findMany({
+      orderBy: { name: 'asc' },
+    });
   }
 }
 

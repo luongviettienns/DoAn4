@@ -249,26 +249,17 @@ async function main() {
 
   // 7. Base Price Rules for CineX Cầu Giấy
   console.log('-> Seeding Base Price Rules...');
-  await prisma.priceRule.upsert({
-    where: {
-      cinemaId_roomFormat_dayType_timeSlot_effectiveFrom: {
-        cinemaId: cinemaCG.id,
-        roomFormat: RoomFormat.IMAX,
-        dayType: DayType.WEEKDAY,
-        timeSlot: TimeSlot.EVENING,
-        effectiveFrom: effectiveDate,
-      },
-    },
-    update: { basePrice: 130000 },
-    create: {
-      cinemaId: cinemaCG.id,
-      roomFormat: RoomFormat.IMAX,
-      dayType: DayType.WEEKDAY,
-      timeSlot: TimeSlot.EVENING,
-      basePrice: 130000,
-      effectiveFrom: effectiveDate,
-    },
-  });
+  // Explicit demo tariff for every calendar/time bucket; booking never invents missing rules.
+  for (const dayType of [DayType.WEEKDAY, DayType.WEEKEND, DayType.HOLIDAY]) {
+    for (const timeSlot of [TimeSlot.MORNING, TimeSlot.AFTERNOON, TimeSlot.EVENING]) {
+      const version = { cinemaId: cinemaCG.id, roomFormat: RoomFormat.IMAX, dayType, timeSlot, effectiveFrom: effectiveDate };
+      await prisma.priceRule.upsert({
+        where: { cinemaId_roomFormat_dayType_timeSlot_effectiveFrom: version },
+        update: { basePrice: 130000 },
+        create: { ...version, basePrice: 130000 },
+      });
+    }
+  }
 
   // 8. Genres
   console.log('-> Seeding Genres...');
@@ -351,8 +342,12 @@ async function main() {
   // 10. Showtimes and Showtime Seats
   console.log('-> Seeding Showtimes & Showtime Seats...');
   const now = new Date();
-  const startTime = new Date(now.getTime() + 4 * 3600 * 1000); // 4 hours from now
-  const endTime = new Date(startTime.getTime() + 166 * 60 * 1000);
+  const localDate = new Date(now.getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10);
+  let startTime = new Date(`${localDate}T19:00:00+07:00`);
+  if (startTime.getTime() < now.getTime() + 4 * 3600 * 1000) {
+    startTime = new Date(startTime.getTime() + 24 * 3600 * 1000);
+  }
+  const endTime = new Date(startTime.getTime() + (dune.durationMin + 15) * 60 * 1000);
 
   let showtime = await prisma.showtime.findFirst({
     where: { roomId: roomIMAX.id, movieId: dune.id },
@@ -387,6 +382,86 @@ async function main() {
     await prisma.showtimeSeat.createMany({ data: showtimeSeatsData });
     console.log(`✓ Created Showtime and ${showtimeSeatsData.length} ShowtimeSeats!`);
   }
+
+  // 11. Combos bắp nước (F13)
+  console.log('-> Seeding Combos & Concessions...');
+  await prisma.combo.upsert({
+    where: { id: 'combo-single-popcorn-drink' },
+    update: {},
+    create: {
+      id: 'combo-single-popcorn-drink',
+      name: 'Combo Solo Đơn (1 Bắp Ngọt + 1 Coca/Pepsi)',
+      description: '1 Bắp rang bơ thơm lừng 60oz + 1 Nước ngọt có gas 32oz',
+      price: 69000,
+      imageUrl: 'https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=500&auto=format&fit=crop&q=80',
+      isActive: true,
+    },
+  });
+
+  await prisma.combo.upsert({
+    where: { id: 'combo-sweet-romance-couple' },
+    update: {},
+    create: {
+      id: 'combo-sweet-romance-couple',
+      name: 'Combo Đôi CineX Sweet Romance',
+      description: '1 Bắp vị Phô Mai hảo hạng + 2 Nước ngọt 32oz + 1 Bánh snack socola',
+      price: 109000,
+      imageUrl: 'https://images.unsplash.com/photo-1572177812156-58036aae439c?w=500&auto=format&fit=crop&q=80',
+      isActive: true,
+    },
+  });
+
+  await prisma.combo.upsert({
+    where: { id: 'combo-party-family-pack' },
+    update: {},
+    create: {
+      id: 'combo-party-family-pack',
+      name: 'CineX Party Pack (Gia đình & Bạn bè)',
+      description: '2 Bắp lớn 85oz (Phô Mai + Caramel) + 4 Nước ngọt + 2 Khoai tây sấy giòn',
+      price: 189000,
+      imageUrl: 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=500&auto=format&fit=crop&q=80',
+      isActive: true,
+    },
+  });
+
+  // 12. Vouchers & Promo Codes (F13)
+  console.log('-> Seeding Vouchers & Promos...');
+  await prisma.voucher.upsert({
+    where: { code: 'CINEX20' },
+    update: {},
+    create: {
+      code: 'CINEX20',
+      name: 'Giảm 20% cho đơn từ 100K',
+      type: 'PERCENT',
+      value: 20,
+      maxDiscount: 40000,
+      minOrder: 100000,
+      scope: 'ORDER',
+      validFrom: new Date('2026-01-01'),
+      validTo: new Date('2027-12-31'),
+      totalLimit: 1000,
+      perUserLimit: 5,
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.voucher.upsert({
+    where: { code: 'GIAM30K' },
+    update: {},
+    create: {
+      code: 'GIAM30K',
+      name: 'Giảm ngay 30.000đ cho đơn từ 120K',
+      type: 'FIXED',
+      value: 30000,
+      minOrder: 120000,
+      scope: 'ORDER',
+      validFrom: new Date('2026-01-01'),
+      validTo: new Date('2027-12-31'),
+      totalLimit: 500,
+      perUserLimit: 3,
+      status: 'ACTIVE',
+    },
+  });
 
   console.log('🎉 Seeding successfully completed!');
 }

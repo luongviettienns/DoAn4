@@ -8,9 +8,11 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest run",
+    "test": "node scripts/run-tests.cjs",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "seed:tmdb": "tsx scripts/sync-tmdb.ts",
+    "test:coverage": "node scripts/run-tests.cjs --coverage"
   },
   "dependencies": {
     "@prisma/client": "6.19.0",
@@ -20,20 +22,27 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^10.0.15",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
+    "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.9",
+    "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^5.0.3",
     "prisma": "6.19.0",
     "supertest": "^7.3.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "effect": "3.20.0"
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, CheckCircle2, Ticket, MapPin, Calendar, Download } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface TicketItem {
   id: string;
@@ -12,6 +13,7 @@ interface TicketItem {
     ticketCode: string;
     status: string;
     checkedInAt: string | null;
+    qrCode?: string;
   } | null;
 }
 
@@ -39,34 +41,50 @@ interface OrderData {
 interface TicketModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onHome?: () => void;
   order: OrderData | null;
 }
 
-export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, order }) => {
+export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, onHome, order }) => {
+  useModalA11y({ isOpen, onClose });
+
   if (!isOpen || !order) return null;
+
+  const issued = order.status === 'PAID' && order.items.length > 0
+    && order.items.every((item) => !!item.ticket?.ticketCode);
+  const bannerText = issued ? 'Đặt vé thành công'
+    : order.status === 'CANCELLED' ? 'Đơn hàng đã hủy'
+    : order.status === 'EXPIRED' ? 'Đơn hàng đã hết hạn' : 'Đang chờ phát hành vé';
 
   const startTime = new Date(order.snapshot.startTime);
   const formattedDate = startTime.toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     weekday: 'long',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   });
   const formattedTime = startTime.toLocaleTimeString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     hour: '2-digit',
     minute: '2-digit',
   });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-[#151318] border border-[#FFB23E]/30 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticket-modal-title"
+        className="relative w-full max-w-xl bg-[#151318] border border-[#FFB23E]/30 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto"
+      >
         {/* Top Success Banner */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 flex items-center justify-between text-white">
+        <div className={`${issued ? 'bg-gradient-to-r from-emerald-600 to-teal-700' : 'bg-[#2A2631]'} px-6 py-4 flex items-center justify-between text-white`}>
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
+            {issued ? <CheckCircle2 className="w-6 h-6 flex-shrink-0" /> : <Ticket className="w-6 h-6 flex-shrink-0" />}
             <div>
-              <div className="text-xs uppercase font-bold tracking-wider opacity-90">Đặt vé thành công (F05)</div>
-              <h2 className="font-['Barlow_Condensed'] text-xl font-bold uppercase tracking-wide">
+              <div className="text-xs uppercase font-bold tracking-wider opacity-90">{bannerText}</div>
+              <h2 id="ticket-modal-title" className="font-['Barlow_Condensed'] text-xl font-bold uppercase tracking-wide">
                 Vé điện tử CineX Pass
               </h2>
             </div>
@@ -135,8 +153,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, order
             </div>
 
             <div className="space-y-3">
-              {order.items.map((item, idx) => {
-                const ticketCode = item.ticket?.ticketCode || `TK${order.code}${idx}`;
+              {order.items.map((item) => {
+                const ticketCode = item.ticket?.ticketCode;
+                const isValid = order.status === 'PAID' && item.ticket?.status === 'VALID' && !!ticketCode;
+                const statusLabel = item.ticket?.status === 'USED' ? 'ĐÃ SỬ DỤNG'
+                  : item.ticket?.status === 'CANCELLED' ? 'ĐÃ HỦY'
+                  : isValid ? 'HỢP LỆ — SẴN SÀNG SOÁT VÉ' : 'CHƯA PHÁT HÀNH';
                 return (
                   <div
                     key={item.id}
@@ -144,25 +166,25 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, order
                   >
                     <div className="flex items-center gap-4">
                       {/* Live Sharp QR Code */}
-                      <div className="p-2.5 bg-white rounded-xl shadow-md flex-shrink-0">
+                      {isValid && ticketCode && <div className="p-2.5 bg-white rounded-xl shadow-md flex-shrink-0">
                         <QRCodeSVG
-                          value={ticketCode}
+                          value={item.ticket?.qrCode || ticketCode}
                           size={96}
                           level="H"
                           includeMargin={false}
                         />
-                      </div>
+                      </div>}
                       <div className="space-y-1 text-center sm:text-left">
                         <div className="text-xs text-[#A39E96]">MÃ VÉ ĐIỆN TỬ</div>
                         <div className="font-mono text-base font-black text-[#FFB23E] tracking-wider">
-                          {ticketCode}
+                          {ticketCode || 'Chưa có mã vé'}
                         </div>
                         <div className="text-xs text-[#F3EEE6] font-bold">
                           Ghế: <span className="text-[#FFB23E] font-mono text-sm">{item.seatLabel}</span> ({item.seatType})
                         </div>
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold border border-emerald-500/20">
                           <CheckCircle2 className="w-3 h-3" />
-                          <span>HỢP LỆ — SẴN SÀNG SOÁT VÉ</span>
+                          <span>{statusLabel}</span>
                         </div>
                       </div>
                     </div>
@@ -193,7 +215,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, order
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={onHome ?? onClose}
             className="w-full sm:w-auto px-8 py-3 bg-[#FFB23E] hover:bg-[#FFA21A] text-[#0B0A0C] font-['Barlow_Condensed'] text-base font-black tracking-wider uppercase rounded-xl shadow-lg transition-all min-h-[44px] flex items-center justify-center"
           >
             HOÀN TẤT & VỀ TRANG CHỦ

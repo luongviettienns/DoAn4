@@ -1,6 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
-import { registerSchema, loginSchema, updateProfileSchema, changePasswordSchema } from './auth.schema';
+import {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  verifyEmailSchema,
+  googleLoginSchema,
+  completeGoogleRegistrationSchema,
+} from './auth.schema';
 import { sendSuccess } from '../../shared/response';
 
 const COOKIE_NAME = 'refreshToken';
@@ -13,8 +23,14 @@ export class AuthController {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
+      path: '/api/v1/auth',
       maxAge: COOKIE_MAX_AGE,
     });
+  }
+
+  private clearRefreshCookie(res: Response) {
+    res.clearCookie(COOKIE_NAME, { path: '/api/v1/auth' });
+    res.clearCookie(COOKIE_NAME, { path: '/' });
   }
 
   register = async (req: Request, res: Response, next: NextFunction) => {
@@ -54,7 +70,7 @@ export class AuthController {
     try {
       const token = req.cookies?.[COOKIE_NAME] || req.body?.refreshToken;
       await authService.logout(token);
-      res.clearCookie(COOKIE_NAME);
+      this.clearRefreshCookie(res);
       return sendSuccess(res, { message: 'Đăng xuất thành công' }, 200);
     } catch (error) {
       next(error);
@@ -84,8 +100,74 @@ export class AuthController {
     try {
       const validated = changePasswordSchema.parse(req.body);
       await authService.changePassword(req.user!.id, validated);
-      res.clearCookie(COOKIE_NAME);
+      this.clearRefreshCookie(res);
       return sendSuccess(res, { message: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại' }, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      const result = await authService.forgotPassword(email);
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = resetPasswordSchema.parse(req.body);
+      const result = await authService.resetPassword(validated);
+      this.clearRefreshCookie(res);
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token } = verifyEmailSchema.parse(req.body);
+      const result = await authService.verifyEmail(token);
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resendVerification = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      const result = await authService.resendVerification(email);
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  googleLogin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = googleLoginSchema.parse(req.body);
+      const result = await authService.googleLogin(validated);
+      if (!result.requirePhone && result.refreshToken) {
+        this.setRefreshCookie(res, result.refreshToken);
+        return sendSuccess(res, { requirePhone: false, user: result.user, accessToken: result.accessToken }, 200);
+      }
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  completeGoogleRegistration = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = completeGoogleRegistrationSchema.parse(req.body);
+      const result = await authService.completeGoogleRegistration(validated);
+      this.setRefreshCookie(res, result.refreshToken);
+      return sendSuccess(res, { user: result.user, accessToken: result.accessToken }, 201);
     } catch (error) {
       next(error);
     }
