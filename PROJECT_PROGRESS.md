@@ -567,7 +567,7 @@
   - **Phần 5: 5 Luận điểm kỹ thuật then chốt để bảo vệ trước Hội đồng:** Khóa dòng CSDL `SELECT ... FOR UPDATE` chống Race Condition, Idempotency Token hash SHA-256, Cinema-Scope Invariant, Chữ ký số HMAC-SHA256 cho QR, Bộ kiểm thử tự động 687 tests (100% pass, coverage >93%).
 ### [2026-10-10] Đợt 17: Kiểm thử Tổng Thể, Đóng Gói & Đồng Bộ Toàn Diện Dự Án Lên GitHub
 - [x] **Kiểm thử tự động tích hợp toàn hệ thống:**
-  - Chạy `npm run test` trên cả 2 workspaces: **687/687 tests PASSED (100%)** trên 45 test files (Backend 518 tests / Frontend 169 tests).
+  - Chạy `npm run test` trên cả 2 workspaces: **688/688 tests PASSED (100%)** trên 45 test files (Backend 519 tests / Frontend 169 tests).
   - Không có bất kỳ hồi quy (regression) hay bài kiểm thử nào thất bại.
 - [x] **Biên dịch mã nguồn sản xuất (Production Build):**
   - Frontend: `tsc -b && vite build` biên dịch thành công (bundle tối ưu hóa, không có lỗi type).
@@ -578,6 +578,9 @@
 - [x] **Đồng bộ kho lưu trữ Git & GitHub:**
   - Chuẩn hóa file theo dõi `.gitignore`, bảo đảm không rò rỉ secret hoặc `.env`.
   - Thực hiện commit toàn bộ thay đổi và push lên nhánh `main` repository `origin`.
+- [x] **Xác thực Pipeline GitHub Actions CI ("Core verification"):**
+  - Workflow CI chạy tự động trên Ubuntu Linux runner với MySQL 8.0 service container.
+  - Vượt qua 100% toàn bộ 14 bước: `npm ci`, `prisma generate`, `build:backend`, `build:frontend`, `lint`, `test:coverage` (với ngưỡng coverage gate vững chắc), và `test:e2e` Playwright Chromium tương tác trình duyệt thật. Trạng thái: **GREEN / SUCCESS** ([Run #38031359351](https://github.com/luongviettienns/DoAn4/actions/runs/38031359351)).
 
 
 
