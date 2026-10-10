@@ -195,4 +195,10 @@ describe('Google Authentication Endpoints', () => {
       await prisma.user.delete({ where: { id: dbUser.id } });
     }
   });
+
+  it('rejects verifyIdToken with empty or non-string token', async () => {
+    // @ts-expect-error test invalid type
+    await expect(googleAuthService.verifyIdToken(null)).rejects.toThrow('Mã xác thực Google không hợp lệ');
+    await expect(googleAuthService.verifyIdToken('')).rejects.toThrow('Mã xác thực Google không hợp lệ');
+  });
 });

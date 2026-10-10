@@ -2,7 +2,7 @@
 
 > **Cập nhật lần cuối:** 2026-10-10  
 > **Repository GitHub:** [luongviettienns/DoAn4](https://github.com/luongviettienns/DoAn4) (Public)
-> **Trạng thái kiểm thử:** 687/687 tests đạt (Backend 518, Frontend 169), 45 test files, Build 2 workspace đạt, Lint 0 lỗi / 0 cảnh báo, Dependency Audit 0 vulnerabilities
+> **Trạng thái kiểm thử:** 688/688 tests đạt (Backend 519, Frontend 169), 45 test files, Build 2 workspace đạt, Lint 0 lỗi / 0 cảnh báo, Dependency Audit 0 vulnerabilities
 
 ---
 
