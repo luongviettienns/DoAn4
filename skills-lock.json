@@ -103,6 +103,12 @@
       "skillPath": ".agents/skills/ibm-a11y-testing-guide/SKILL.md",
       "computedHash": "40bba02d6e417419b18e2f3acae7e7713b63923aa3a5fc8b736785637260c5c1"
     },
+    "magic-ui": {
+      "source": "magicuidesign/magicui",
+      "sourceType": "github",
+      "skillPath": "skills/magic-ui/SKILL.md",
+      "computedHash": "6ff45330fc3b3c0901cc3d9d6febacef519dc477d36c1aaabe73e4879c4833c9"
+    },
     "parallel-feature-development": {
       "source": "wshobson/agents",
       "sourceType": "github",

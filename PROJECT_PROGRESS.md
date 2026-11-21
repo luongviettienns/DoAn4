@@ -1,8 +1,8 @@
 # Theo dõi tiến độ dự án - Đồ án 4: Hệ thống đặt vé xem phim online
 
-> **Cập nhật lần cuối:** 2026-10-10  
+> **Cập nhật lần cuối:** 2026-11-21  
 > **Repository GitHub:** [luongviettienns/DoAn4](https://github.com/luongviettienns/DoAn4) (Public)
-> **Trạng thái kiểm thử:** 688/688 tests đạt (Backend 519, Frontend 169), 45 test files, Build 2 workspace đạt, Lint 0 lỗi / 0 cảnh báo, Dependency Audit 0 vulnerabilities
+> **Trạng thái kiểm thử:** Frontend 175/175 tests đạt (18 test files, `oxlint` 0 lỗi / 0 cảnh báo, `tsc -b && vite build` đạt); Backend 519/519 tests (từ đợt kiểm thử trước)
 
 ---
 
@@ -581,6 +581,30 @@
 - [x] **Xác thực Pipeline GitHub Actions CI ("Core verification"):**
   - Workflow CI chạy tự động trên Ubuntu Linux runner với MySQL 8.0 service container.
   - Vượt qua 100% toàn bộ 14 bước: `npm ci`, `prisma generate`, `build:backend`, `build:frontend`, `lint`, `test:coverage` (với ngưỡng coverage gate vững chắc), và `test:e2e` Playwright Chromium tương tác trình duyệt thật. Trạng thái: **GREEN / SUCCESS** ([Run #38031359351](https://github.com/luongviettienns/DoAn4/actions/runs/38031359351)).
+
+### [2026-11-09] Đợt 18: Tích hợp Bộ Công Cụ AKit v0.4.0 & 3 Frontend Skills (Magic UI, Motion Primitives, React Bits)
+- [x] **Tích hợp trọn gói AKit v0.4.0 (Profile `full`, target `antigravity`):**
+  - Cài đặt 30 Agent Skills (`akit-*`) vào `.agents/skills/` phục vụ trọn vẹn vòng đời phát triển phần mềm (định tuyến tác vụ, lập kế hoạch TDD, phản biện đa tác tử, kiểm tra kiến trúc, audit bảo mật, và kiểm chứng bằng chứng thực thi).
+  - Cài đặt 6 Specialist Subagents chỉ đọc vào `.agents/agents/` (`akit-architect`, `akit-critic`, `akit-debater`, `akit-judge`, `akit-scout`, `akit-security`) với cờ an toàn runtime khóa cứng quyền ghi.
+  - Thiết lập bộ quy tắc kỹ thuật nghiêm ngặt `.agents/rules/akit.md` (6 Cổng Fail-Closed và 4 Định luật Andrej Karpathy) kèm bảng chỉ mục ngắn gọn trong `GEMINI.md`.
+  - Triển khai bộ công cụ runtime CLI `.akit/runtime/akit_cli.py` hỗ trợ `doctor`, `arena` (debate & tournament), `eval`, và `checks`.
+- [x] **Cài đặt 3 Frontend Skills phục vụ thiết kế giao diện động & chuyển động cao cấp:**
+  - `magic-ui` (từ `magicuidesign/magicui`): Kho linh kiện hiệu ứng, animated card, dock, particles và tương tác cao cấp cho React và Tailwind CSS.
+  - `motion-primitives` (từ `ibelick/motion-primitives`): Bộ animation primitives mượt mà xây dựng trên Motion (`motion/react`) và Tailwind CSS (MorphingDialog, AnimatedBackground, BorderTrail, TextScramble, Tilt).
+  - `react-bits` (từ `DavidHDev/react-bits`): 200+ linh kiện hoạt họa, hiệu ứng chữ, WebGL background shaders và micro-interactions với nguyên tắc giới hạn GPU frame budget (1-hero rule).
+- [x] **Cấu hình Cross-Platform Lifecycle Hooks (`.agents/hooks.json` & `.agents/hook_gate.py`):**
+  - Tối ưu hóa bộ chạy hook chạy độc lập qua script Python chuẩn hóa, khắc phục triệt để lỗi phân giải chuỗi inline command trên Windows.
+  - Bảo vệ tuyệt đối các tệp bí mật (`.env*`) và ngăn chặn lệnh nguy hiểm (`DROP DATABASE`, `rm -rf /`, `git push --force`).
+- [x] **Xác thực toàn vẹn & Kiểm thử tự động:**
+  - Chạy `python .akit/runtime/akit_cli.py doctor --project . --strict`: **Đạt chuẩn 100% (ok: true, 0 findings, 30 skills)**.
+  - Chạy toàn bộ test suites của cả 2 workspace: **688/688 tests PASSED (100%)** trên 45 test files (Backend 519 tests, Frontend 169 tests), không có bất kỳ xung đột hay hồi quy nào.
+
+### [2026-11-21] Đợt 19: Nâng cấp Giao diện Trang chủ (Cinematic Homepage Redesign) & Đồng bộ Nhánh `main`
+- [x] **Triển khai Homepage Redesign (Premiere × Editorial Nocturne):**
+  - Cập nhật [App.tsx](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/App.tsx), [Header.tsx](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/components/Header.tsx), [Discovery.tsx](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/components/Discovery.tsx), [CinemaExperienceSection.tsx](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/components/CinemaExperienceSection.tsx), [PromoSection.tsx](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/components/PromoSection.tsx), [Footer.tsx](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/components/Footer.tsx), [index.css](file:///c:/Users/ASUS/Desktop/DoAn4/frontend/src/index.css) cùng các module mới (`TrailerModal.tsx`, `useReducedMotion.ts`, `frontend/src/utils/`), tài liệu thiết kế `DESIGN.md` và `docs/homepage-redesign/`.
+- [x] **Kiểm thử Frontend:** `oxlint` (0 lỗi, 0 cảnh báo), `tsc -b && vite build` đạt, `vitest run` đạt **175/175 tests (18 test files)**.
+- [x] **Quản lý nhánh Git & Đồng bộ Remote:** Commit toàn bộ thay đổi vào `main`, xóa nhánh phụ `feat/cinematic-homepage` (local, chưa từng đẩy lên remote) và đồng bộ `main` với `origin/main`.
+
 
 
 

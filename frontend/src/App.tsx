@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { Header } from './components/Header';
 import { Discovery } from './components/Discovery';
@@ -12,11 +12,18 @@ import { SeatMapModal, type SeatItem } from './components/SeatMapModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { TicketModal } from './components/TicketModal';
 import { MyTicketsDrawer } from './components/MyTicketsDrawer';
-import { StaffCheckinModal } from './components/StaffCheckinModal';
-import { AdminReportDashboard } from './components/AdminReportDashboard';
 import { UserProfileModal } from './components/UserProfileModal';
-import { AdminManagementModal } from './components/AdminManagementModal';
 import { useAuth } from './context/AuthContext';
+
+const StaffCheckinModal = lazy(() =>
+  import('./components/StaffCheckinModal').then((m) => ({ default: m.StaffCheckinModal })),
+);
+const AdminReportDashboard = lazy(() =>
+  import('./components/AdminReportDashboard').then((m) => ({ default: m.AdminReportDashboard })),
+);
+const AdminManagementModal = lazy(() =>
+  import('./components/AdminManagementModal').then((m) => ({ default: m.AdminManagementModal })),
+);
 
 const AppContent: React.FC = () => {
   const { openAuthModal, user } = useAuth();
@@ -92,10 +99,10 @@ const AppContent: React.FC = () => {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
+      <main id="main-content" className="flex-1 flex flex-col">
         <Discovery onSelectShowtime={setActiveSeatMapShowtimeId} />
         <CinemaExperienceSection />
-        <PromoSection />
+        <PromoSection onOpenMyTickets={() => setMyTicketsOpen(true)} />
       </main>
 
       {/* Footer */}
@@ -139,16 +146,24 @@ const AppContent: React.FC = () => {
       />
 
       {/* Staff Check-in Station (F08) */}
-      <StaffCheckinModal
-        isOpen={staffCheckinOpen}
-        onClose={() => setStaffCheckinOpen(false)}
-      />
+      {staffCheckinOpen && (
+        <Suspense fallback={null}>
+          <StaffCheckinModal
+            isOpen={staffCheckinOpen}
+            onClose={() => setStaffCheckinOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Admin Report Dashboard (F14) */}
-      <AdminReportDashboard
-        isOpen={reportOpen}
-        onClose={() => setReportOpen(false)}
-      />
+      {reportOpen && (
+        <Suspense fallback={null}>
+          <AdminReportDashboard
+            isOpen={reportOpen}
+            onClose={() => setReportOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* User Profile & Security Modal */}
       <UserProfileModal
@@ -157,11 +172,13 @@ const AppContent: React.FC = () => {
       />
 
       {/* Admin Operations Management Modal (F09 · F10 · F11 · F13) */}
-      {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
-        <AdminManagementModal
-          isOpen={adminManagementOpen}
-          onClose={() => setAdminManagementOpen(false)}
-        />
+      {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && adminManagementOpen && (
+        <Suspense fallback={null}>
+          <AdminManagementModal
+            isOpen={adminManagementOpen}
+            onClose={() => setAdminManagementOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

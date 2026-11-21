@@ -1,22 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-deep: #0B0A0C;
-  --color-surface: #151318;
-  --color-surface-hover: #221F28;
-  --color-surface-border: #2A2631;
+  --color-bg-deep: #09090B;
+  --color-bg-primary: #09090B;
+  --color-bg-secondary: #121216;
+  --color-surface: #121216;
+  --color-surface-hover: #18181F;
+  --color-surface-elevated: #18181F;
+  --color-surface-border: #272730;
   --color-accent: #FFB23E;
   --color-accent-hover: #FFA21A;
   --color-accent-glow: rgba(255, 178, 62, 0.25);
-  --color-text-primary: #F3EEE6;
-  --color-text-secondary: #A39E96;
-  --color-text-muted: #6B665F;
-  --font-display: 'Barlow Condensed', sans-serif;
-  --font-body: 'Be Vietnam Pro', sans-serif;
+  --color-accent-cta: #E11D48;
+  --color-accent-cta-hover: #F43F5E;
+  --color-accent-gold: #F59E0B;
+  --color-text-primary: #FAFAFA;
+  --color-text-secondary: #B4B4BE;
+  --color-text-muted: #8E8E9A;
+  --font-display: "Barlow Condensed", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Be Vietnam Pro", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
   color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -24,6 +36,21 @@ body {
   background-color: var(--color-bg-deep);
   color: var(--color-text-primary);
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Vietnamese display typography safety: prevents stacked diacritics (Ấ, Ể, Ỗ, Ự) from clipping */
+.vn-display-safe {
+  font-family: var(--font-display);
+  line-height: 1.12;
+  letter-spacing: 0.015em;
+  padding-top: 0.06em;
+}
+
+/* Numeric discipline across showtimes, prices, durations, dates */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Nút tem vé xé khuyết 2 cạnh (Ticket Notch Mask) */
@@ -39,11 +66,148 @@ body {
 
 /* Cinema Vignette Scrim */
 .cinema-vignette {
-  background: radial-gradient(circle at 50% 40%, transparent 20%, rgba(11, 10, 12, 0.75) 75%, #0B0A0C 100%),
-              linear-gradient(to top, #0B0A0C 0%, rgba(11, 10, 12, 0.8) 25%, transparent 60%);
+  background: radial-gradient(circle at 50% 38%, transparent 18%, rgba(9, 9, 11, 0.76) 72%, #09090B 100%),
+              linear-gradient(to top, #09090B 0%, rgba(9, 9, 11, 0.84) 28%, transparent 65%);
+}
+
+/* Projector beam atmospheric lighting (compositor-friendly opacity transitions) */
+.projector-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.projector-beam {
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 72% 58% at 68% 24%, rgba(225, 29, 72, 0.26), transparent 68%),
+    radial-gradient(ellipse 55% 48% at 22% 18%, rgba(245, 158, 11, 0.16), transparent 70%),
+    conic-gradient(from 198deg at 76% 4%, rgba(255, 255, 255, 0.09) 0deg, rgba(225, 29, 72, 0.14) 22deg, rgba(245, 158, 11, 0.08) 42deg, transparent 68deg);
+  transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Subtle architectural cinema screen grid */
+.hero-aperture-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 35%, black 20%, transparent 80%);
+}
+
+/* Anamorphic horizontal cinema lens streak */
+.anamorphic-flare {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(225, 29, 72, 0.45) 22%,
+    rgba(251, 191, 36, 0.85) 50%,
+    rgba(56, 189, 248, 0.4) 78%,
+    transparent 100%
+  );
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.45);
+}
+
+/* 3D Poster Specular Glare */
+.poster-glare {
+  background: radial-gradient(
+    280px circle at var(--glare-x, 50%) var(--glare-y, 25%),
+    rgba(255, 255, 255, 0.24),
+    rgba(251, 191, 36, 0.08) 40%,
+    transparent 70%
+  );
+}
+
+/* Editorial perforated ticket stub geometry */
+.ticket-stub {
+  position: relative;
+  border-radius: 14px;
+}
+
+.ticket-stub::before,
+.ticket-stub::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ticket-stub::before {
+  left: -8px;
+}
+
+.ticket-stub::after {
+  right: -8px;
+}
+
+.ticket-perforation {
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(255, 255, 255, 0) 0%
+  );
+  background-position: bottom;
+  background-size: 10px 1px;
+  background-repeat: repeat-x;
+}
+
+/* Fine-pointer radial card spotlight (adapted from motion-primitives Spotlight) */
+.card-spotlight {
+  position: relative;
+}
+
+.card-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    360px circle at var(--spot-x, 50%) var(--spot-y, 20%),
+    rgba(225, 29, 72, 0.18),
+    rgba(245, 158, 11, 0.06) 45%,
+    transparent 75%
+  );
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-spotlight:hover::before,
+  .card-spotlight:focus-within::before {
+    opacity: 1;
+  }
 }
 
 /* Subtle Film Grain Noise Overlay */
 .film-grain {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* Accessible keyboard focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-accent-cta);
+  outline-offset: 2px;
+}
+
+/* Reduced motion compliance */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

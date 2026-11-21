@@ -1,0 +1,84 @@
+{
+  "version": "0.4.0",
+  "target": "antigravity",
+  "targets": [
+    "antigravity"
+  ],
+  "profile": "full",
+  "skills": {
+    "akit-architecture": "8e40d9f3f6b5d5e3a1c6e0f5f37eb066ffcb0872bb50f7ba33f597827a745327",
+    "akit-arena": "3ac0f918e8da42e4bebfb576900f8ebc76ad29c079a6452198226fccd8738d02",
+    "akit-browser-qa": "2b4c82d8d565f50ee36283ed49f604d1f48f40014754fdb6750a29a192f4e4e1",
+    "akit-codebase": "83c6e56c1a304f754f7badd1e30071fde9a21db5590560218bd684e2c1853097",
+    "akit-context": "9cff90786a0c39c7f4dd664f8a650fbb22c15e89eb17f3ec07f26c6477a68e79",
+    "akit-contract": "a44bb58a9b450b03be8edbc109de64678653a85beeb8bbd32c149d238e148d33",
+    "akit-data": "6352b2a7b4a6b5b93aa196817e65ff29a7d2deb2ebd0efdce86f04f0366999e0",
+    "akit-debate": "2c42267a166ef1610eb62af85b460ceeec27c640235be7a32a81de69e154f877",
+    "akit-debug": "e75ed283a5e2366a5faa2dfde1f9bdbe7996c3da0875327dfdcdff12e96412ab",
+    "akit-deliver": "72db23ef9e31d9cf60702b2dc716d00be310f230cc66f7dfe8c94dd5b0b492e6",
+    "akit-design": "22ab4ed216dbc8daa2eb10874bd0e3f4474071158b1f6b7d6fca80458e090004",
+    "akit-docs": "e9c9189e79a350f2c389ce604ecd00a8ea85904ba8b04817868cd82233e5bf81",
+    "akit-eval": "7d86b1a97dca35d2296831b179c82133a87ae53549ff0d34d21a24801b8c890b",
+    "akit-git": "1a19476cabc69479fb49da97263cfb41107b26d52d9a182e107d50db5aa3e414",
+    "akit-implement": "642be52c0adba211a28b4f0a7ffc7aa43e7c1679c58a6418c9cd4015c63d626e",
+    "akit-observability": "b19bcdf64f3deb9d33ec2755f9d9721d2c2b44046777fde285efa00cd01b14f4",
+    "akit-performance": "b617051dee273955e101c4ec201938b451715a818dcccc1184a00f00a8970333",
+    "akit-plan": "1cc272bf55573d06f3b393352066c06e99d9f44405adbff300df18fe114d2ca2",
+    "akit-postgres": "c857c39116f07cb251fa1c5b78bb7736512a3cc82ef8705e597b647f4b93beb1",
+    "akit-prior-art": "ccf0298caf2e8be5985342790c2eca6ff60faf427fb220c41ae7a58df0b179b9",
+    "akit-prompt": "c5e05e1e7c7de7d4f690d807369591d87cfc8de151f549482075c4de447b3bb3",
+    "akit-react": "6b05164a6e267f939d1b86473c6b3539d6a5a364cd298a577e8fe3b6b533dab4",
+    "akit-requirements": "c841ff242bead51faff34239913ed082f301738db8b2c965ffef609249f2a419",
+    "akit-review": "60c9e1f82b218cfbe31696ea88caed7686aa38fc3f46b6ae0185519ade21e9f6",
+    "akit-router": "6718dae2e9bc407d1ef84a1f28da63c2505554ff7d43e70613ac79a4aa5d8248",
+    "akit-scout": "476a6f42e3a5607487587580a4c74f99238f102ccae6de2fb2840ca161660296",
+    "akit-security": "0fe4555ffe8ab06ed4caef279eb9354cc2122fcf436be89e5704abedb30f1baa",
+    "akit-simplify": "5bf33a897a08b96e3c2fed6ffe8e95a558119740a8e8a21fb18594724fd1c5af",
+    "akit-skillforge": "230d2362eb9b44345f11a597d19cc9e7b205a8b5d65ecfc32bbbfb441149624b",
+    "akit-test": "0c3bc77dd5d1b3bdce942ce6724da3dcb516d04e08329c42971f2fe02d357c65"
+  },
+  "agents": {
+    "akit-architect.md": "52d0a71f4f70a7b11c737427b6ce02dd0498805e4f95e698fd255db6ee0101d9",
+    "akit-critic.md": "9ca67089f31f44b559c8141c0145732125758f32d8df03a9b14f8ed27ee1de14",
+    "akit-debater.md": "f647c58da09b8ec8052ca103a6a472115a12663da136f2afd731e340fb2ba8ef",
+    "akit-judge.md": "be73567bef239b3959ea5fcb96a3df8d46786c726e8d2e70ab42921c398e0500",
+    "akit-scout.md": "938e46689eec27b69976903689ea57868a6d88da6cb2c7255428aa383ce8938d",
+    "akit-security.md": "ae9f13935d5d65e446134af04f63cfe2fe1d548c8942a7efbd56be8b7b9b760a"
+  },
+  "runtime": "8c63d96cc8d064d6f3c5797dedd2a177351610ef5fbc613d573bfa419dada996",
+  "auto_rules": [
+    ".agents/rules/akit.md",
+    "GEMINI.md"
+  ],
+  "target_states": {
+    "antigravity": {
+      "skills_dir": ".agents/skills",
+      "agents_dir": ".agents/agents",
+      "agents": {
+        "akit-architect.md": "52d0a71f4f70a7b11c737427b6ce02dd0498805e4f95e698fd255db6ee0101d9",
+        "akit-critic.md": "9ca67089f31f44b559c8141c0145732125758f32d8df03a9b14f8ed27ee1de14",
+        "akit-debater.md": "f647c58da09b8ec8052ca103a6a472115a12663da136f2afd731e340fb2ba8ef",
+        "akit-judge.md": "be73567bef239b3959ea5fcb96a3df8d46786c726e8d2e70ab42921c398e0500",
+        "akit-scout.md": "938e46689eec27b69976903689ea57868a6d88da6cb2c7255428aa383ce8938d",
+        "akit-security.md": "ae9f13935d5d65e446134af04f63cfe2fe1d548c8942a7efbd56be8b7b9b760a"
+      },
+      "auto_rules": [
+        ".agents/rules/akit.md",
+        "GEMINI.md"
+      ],
+      "hooks": "not-requested",
+      "compatibility_report": {
+        "target": "antigravity",
+        "support_tier": "SUPPORTED",
+        "skills_count": 30,
+        "agents_count": 6,
+        "auto_rules": [
+          ".agents/rules/akit.md",
+          "GEMINI.md"
+        ],
+        "hooks_status": "not-requested",
+        "live_e2e_status": "UNVERIFIED_LOCAL_FILES_ONLY"
+      }
+    }
+  }
+}
